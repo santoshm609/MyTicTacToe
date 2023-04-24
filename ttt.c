@@ -47,6 +47,10 @@ int main(int argc, char *argv[]) {
         fgets(message, BUFFER_SIZE, stdin);
         message[strcspn(message, "\n")] = '\0'; // Remove newline character
 
+        if(strcmp(buffer,"play") == 0){
+
+        }
+
         // Send the message to the server
         if (send(socketfd, message, strlen(message), 0) == -1) {
             perror("Failed to send message to server");

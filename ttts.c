@@ -7,6 +7,7 @@
 #include <netinet/in.h>
 #include <pthread.h>
 
+
 #define PORT1 3300
 #define PORT2 3400
 #define BUFFER_SIZE 1024
@@ -158,6 +159,7 @@ void *handle_client(void *arg) {
     int socket2 = *((int *)arg+1);
     char buffer[BUFFER_SIZE];
     int read_size;
+    int counter = 0;
 
     while (1) {
         // Read from the first socket
@@ -178,6 +180,44 @@ void *handle_client(void *arg) {
         // }
         // // Echo the message back to the client
         // write(socket1, buffer, read_size);
+/*
+        if(counter == 0){
+            // Wait for the second client to connect
+            while (1) {
+                if (read(socket1, buffer, BUFFER_SIZE) <= 0 || read(socket2, buffer, BUFFER_SIZE) <= 0) {
+                    // Either an error occurred or the client closed the connection
+                    break;
+                }
+                if (strcmp(buffer, "play") == 0) {
+                    break;
+                }
+            }
+            // Send a message to both clients indicating which player they are
+            int player1size = strlen("You are player 1!");
+            write(socket1, "You are player 1!", player1size);
+            write(socket2, "You are player 2!", player1size);
+            counter += 1;
+        }
+        else{
+            // Read from the first socket
+            read_size = read(socket1, buffer, BUFFER_SIZE);
+            if (read_size <= 0) {
+                // Either an error occurred or the client closed the connection
+                break;
+            }
+            // Echo the message back to the client
+            write(socket2, buffer, read_size);
+        
+            // Read from the second socket
+            read_size = read(socket2, buffer, BUFFER_SIZE);
+            if (read_size <= 0) {
+                // Either an error occurred or the client closed the connection
+                break;
+            }
+            // Echo the message back to the client
+            write(socket1, buffer, read_size);
+        }
+*/
     }
 
     // Close both sockets
