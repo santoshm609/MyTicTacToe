@@ -24,6 +24,20 @@ typedef struct node {
 
 Node* node_head = NULL;
 
+int num_players = 0;
+
+void print_ll() {
+    // print out all names in list
+    Node *ptr = node_head;
+    printf("NAMES: \n");
+    while (ptr != NULL) {
+
+        printf("%s\n", ptr->player.name);
+        ptr = ptr->next;
+    }
+    printf("NAMES PRINTED\n");
+}
+
 // void parse_message(char* buffer) {
 //     char code[5], length_str[4];
 //     int length, i, j;
@@ -92,8 +106,8 @@ int read_message(int s1) {
         num_fields++;
         token = strtok(NULL, "|");
     }
-    printf("buffer: %s\n", buffer);
-    printf("cpy: %s\n", cpy);
+    //printf("buffer: %s\n", buffer);
+    //printf("cpy: %s\n", cpy);
 
 
     // check that message has at least two fields
@@ -126,8 +140,8 @@ int read_message(int s1) {
         printf("%c", cpy[6 + strlen(fields[1])+ i]);
     }
     printf("\n");
-    printf("cpy size %d\n", strlen(cpy));
-    printf("%d\n", (5 + strlen(fields[1]) + length));
+    //printf("cpy size %d\n", strlen(cpy));
+    //printf("%d\n", (5 + strlen(fields[1]) + length));
     
     
     // check how many bytes were read 
@@ -161,13 +175,13 @@ int read_message(int s1) {
    
    // error checking done
     if (strcmp(code, "PLAY") == 0) {
-        printf("WOOHOO WE GOT A PLAY\n");
+       //printf("WOOHOO WE GOT A PLAY\n");
         
         // player wants to play
-        printf("Name: %s\n", fields[2]);
+        //printf("Name: %s\n", fields[2]);
         // check if name exists
         Node *n = node_head;
-        printf("Set n == node_head\n");
+       // printf("Set n == node_head\n");
         while (n != NULL) {
             if (strcmp(n->player.name, fields[2]) == 0) {
                 char* m = "INVL|22|Choose Different Name|";
@@ -175,17 +189,17 @@ int read_message(int s1) {
                 // go back to client loops
                 return 1;
             }
-            printf("N != NULL\n");
+            //printf("N != NULL\n");
             n = n->next;
         }
-        printf("N == NULL\n");
+        //printf("N == NULL\n");
 
         // create player struct
         Player player1 = {0};
         player1.client_sock = s1;
-        printf("Start copy\n");
-        player1.name = fields[2];
-        printf("End copy\n");
+        //printf("Start copy\n");
+        player1.name = strdup(fields[2]);
+        //printf("End copy\n");
         
         Node *new_node = (Node*) malloc(sizeof(Node));
         new_node->player = player1;
@@ -195,39 +209,32 @@ int read_message(int s1) {
         if (node_head == NULL) {
             printf("No Nodes. Added new node to beginning :)\n");
             node_head = new_node;
-            printf("No Nodes. Added new node to beginning :)\n");
+            //printf("No Nodes. Added new node to beginning :)\n");
         } else {
             printf("Nodes detected :)\n");
             Node *last_node = node_head;
             while (last_node->next != NULL) {
-                printf("searching through all nodes :)\n");
+                printf("searching through nodes :)\n");
                 last_node = last_node->next;
             }
-            printf("Added Node after while loop :)\n");
+            printf("On Last Node. Adding to list :)\n");
             last_node->next = new_node;
         }
 
         // send player wait message
         char * w = "WAIT|0|";
+        // player is ready - increment num_players
+        num_players++;
         send(s1, w, strlen(w), 0);
         printf("Player Added MF\n");
 
-        // print out all names in list
-        Node *ptr = node_head;
-        printf("NAMES: \n");
-        while (ptr != NULL) {
-
-            printf("%s\n", ptr->player.name);
-            ptr = ptr->next;
-        }
-        printf("NAMES PRINTED\n");
+        print_ll();
         // return successfully
         return 0;
     }
 
 
 }
-
 
 void *handle_client(void *arg) {
     
@@ -237,7 +244,34 @@ void *handle_client(void *arg) {
 
     while (1) {
         // game is set up
+        printf("NUMBER OF PLAYERS + %d\n\n", num_players);
+        if (num_players % 2 == 0) {
+            // iterate through each node - get players sock_fd. compare to socket1 / socket 2
+            Node * curr = node_head;
+            while (curr != NULL) {
+                if (curr->player.client_sock == socket1) {
+                    printf("Current Player is on Socket 1\n");
+                    printf("NAME: %s\n", curr->player.name);
+                    char buffer[1000];
+                    memset(buffer, 0, BUFFER_SIZE);
+                    sprintf(buffer, "BEGN|%d|X|%s|", (3 + strlen(curr->player.name)), curr->player.name);
+                    printf("Server Message to be sent: %s\n", buffer);
+                    send(socket1, buffer, sizeof(buffer), 0);
+                }
+                else if (curr->player.client_sock == socket2) {
+                    printf("Current Player is on Socket 2\n");
+                    printf("NAME: %s\n", curr->player.name);
+                    char buffer[1000];
+                    memset(buffer, 0, BUFFER_SIZE);
+                    sprintf(buffer, "BEGN|%d|O|%s|", (3 + strlen(curr->player.name)), curr->player.name);
+                    printf("Server Message to be sent: %s\n", buffer);
+                    send(socket2, buffer, sizeof(buffer), 0);
+                }
+                curr = curr->next;
+            }
+        }
         if (player1_turn) {
+            printf("PLAYER 1 TURN:\n\n");
             // Read from the first socket
             if (read_message(socket1) == 0) {
                 // read message was successful and a move was made.
@@ -246,6 +280,7 @@ void *handle_client(void *arg) {
             // read unsuccessful - stay in client loop
         }
         else if (!player1_turn) {
+            printf("PLAYER 2 TURN:\n\n");
             if (read_message(socket2) == 0) {
                 // read message was successful and a move was made.
                 player1_turn = !player1_turn;
