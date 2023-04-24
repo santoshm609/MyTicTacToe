@@ -124,7 +124,7 @@ int read_message(int s1) {
     int diff = read_size - (5 + strlen(fields[1] + length));
     if (diff == 0) {
         // required number of bytes were read
-        print("Correct number of bytes read\n");
+        printf("Correct number of bytes read\n");
     }
     else if (diff > 0) {
         // not enough bytes were read
