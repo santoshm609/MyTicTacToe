@@ -12,10 +12,15 @@
 #define PORT2 3400
 #define BUFFER_SIZE 1024
 
-struct node {
-    char * name;
-    struct node * next;
-} head;
+typedef struct {
+    int client_sock;
+    char *name;
+} Player;
+
+struct Node {
+    Player *player;
+    struct Node *next;
+}node_head;
 
 // void parse_message(char* buffer) {
 //     char code[5], length_str[4];
@@ -72,6 +77,7 @@ int read_message(int s1) {
     
     // split message into fields
     read_size = recv(s1, buffer, sizeof(buffer), 0);
+    printf("Read Size: %d\n", read_size);
     printf("%s\n", buffer);
     char cpy[strlen(buffer)];
     strcpy(cpy, buffer);
@@ -104,35 +110,38 @@ int read_message(int s1) {
     if (num_bars != num_fields) {
         return 0;
     }
+
     char* code = fields[0];
     int length = atoi(fields[1]);
-    printf("%d\n", strlen(fields[1]));
-    printf("%s\n", code);
-    printf("%d\n", length);
-    printf("%s, %d\n", code, length);
-     for (int i = 0; i < length; i++) {
+    printf("length of size field: %d\n", strlen(fields[1]));
+    printf("code: %s\n", code);
+    printf("length as a number: %d\n", length);
+    printf("REMAINING MESSAGE:\n");
+    for (int i = 0; i < length; i++) {
         printf("%c", cpy[6 + strlen(fields[1])+ i]);
     }
-   
-   
-   
     printf("\n");
     printf("cpy size %d\n", strlen(cpy));
     printf("%d\n", (5 + strlen(fields[1]) + length));
+    
+    
     // check how many bytes were read 
+    
+    
+    
     int read = 1;
     while (!read) {}
-    int diff = read_size - (5 + strlen(fields[1] + length));
-    if (diff == 0) {
+    int diff = read_size - (5 + strlen(fields[1]) + length);
+    if (diff == 1) {
         // required number of bytes were read
         printf("Correct number of bytes read\n");
     }
-    else if (diff > 0) {
+    else if (diff > 1) {
         // not enough bytes were read
         // TODO: fix this
         printf("Not enough bytes read\n");
     }
-    else if (diff < 0) {
+    else if (diff < 1) {
         // read too many bytes: weird
         // TODO: fix this
         printf("Too many bytes read\n");
@@ -144,6 +153,7 @@ int read_message(int s1) {
         char* m = "INVL|21|Incorrect Formatting|";
         send(s1, m, strlen(m), 0);
         printf("false mf\n");
+        return 1;
     }
    
    // error checking done
