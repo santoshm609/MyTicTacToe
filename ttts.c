@@ -17,10 +17,12 @@ typedef struct {
     char *name;
 } Player;
 
-struct Node {
-    Player *player;
-    struct Node *next;
-}node_head;
+typedef struct node {
+    Player player;
+    struct node *next;
+}Node;
+
+Node* node_head = NULL;
 
 // void parse_message(char* buffer) {
 //     char code[5], length_str[4];
@@ -67,6 +69,7 @@ struct Node {
 
 int read_message(int s1) {
     char buffer[BUFFER_SIZE];
+    memset(buffer, 0, BUFFER_SIZE);
     int read_size;
 
     // // Receive messages and parse them
@@ -97,7 +100,8 @@ int read_message(int s1) {
     if (num_fields < 2) {
         char* m = "INVL|15|Invalid Format|";
         send(s1, m, strlen(m), 0);
-        return 0;
+        // go back to client loop
+        return 1;
     }
 
     int num_bars = 0;
@@ -108,7 +112,8 @@ int read_message(int s1) {
     }
 
     if (num_bars != num_fields) {
-        return 0;
+        // fields not equal return 1
+        return 1;
     }
 
     char* code = fields[0];
@@ -128,9 +133,6 @@ int read_message(int s1) {
     // check how many bytes were read 
     
     
-    
-    int read = 1;
-    while (!read) {}
     int diff = read_size - (5 + strlen(fields[1]) + length);
     if (diff == 1) {
         // required number of bytes were read
@@ -147,17 +149,81 @@ int read_message(int s1) {
         printf("Too many bytes read\n");
     }
     if (cpy[5 + strlen(fields[1]) + length] == '|') {
-        printf("true mf\n");
+        printf("true mf - last char was a vertical bar!\n");
     }
     else {
         char* m = "INVL|21|Incorrect Formatting|";
         send(s1, m, strlen(m), 0);
         printf("false mf\n");
+        // go back to client loop
         return 1;
     }
    
    // error checking done
-    
+    if (strcmp(code, "PLAY") == 0) {
+        printf("WOOHOO WE GOT A PLAY\n");
+        
+        // player wants to play
+        printf("Name: %s\n", fields[2]);
+        // check if name exists
+        Node *n = node_head;
+        printf("Set n == node_head\n");
+        while (n != NULL) {
+            if (strcmp(n->player.name, fields[2]) == 0) {
+                char* m = "INVL|22|Choose Different Name|";
+                send(s1, m, strlen(m), 0);
+                // go back to client loops
+                return 1;
+            }
+            printf("N != NULL\n");
+            n = n->next;
+        }
+        printf("N == NULL\n");
+
+        // create player struct
+        Player player1 = {0};
+        player1.client_sock = s1;
+        printf("Start copy\n");
+        player1.name = fields[2];
+        printf("End copy\n");
+        
+        Node *new_node = (Node*) malloc(sizeof(Node));
+        new_node->player = player1;
+        new_node->next = NULL;
+
+        // add player to linked list
+        if (node_head == NULL) {
+            printf("No Nodes. Added new node to beginning :)\n");
+            node_head = new_node;
+            printf("No Nodes. Added new node to beginning :)\n");
+        } else {
+            printf("Nodes detected :)\n");
+            Node *last_node = node_head;
+            while (last_node->next != NULL) {
+                printf("searching through all nodes :)\n");
+                last_node = last_node->next;
+            }
+            printf("Added Node after while loop :)\n");
+            last_node->next = new_node;
+        }
+
+        // send player wait message
+        char * w = "WAIT|0|";
+        send(s1, w, strlen(w), 0);
+        printf("Player Added MF\n");
+
+        // print out all names in list
+        Node *ptr = node_head;
+        printf("NAMES: \n");
+        while (ptr != NULL) {
+
+            printf("%s\n", ptr->player.name);
+            ptr = ptr->next;
+        }
+        printf("NAMES PRINTED\n");
+        // return successfully
+        return 0;
+    }
 
 
 }
@@ -167,13 +233,27 @@ void *handle_client(void *arg) {
     
     int socket1 = *((int *)arg);
     int socket2 = *((int *)arg+1);
-    char buffer[BUFFER_SIZE];
-    int read_size;
-    int counter = 0;
+    int player1_turn = 1;
 
     while (1) {
-        // Read from the first socket
-        read_message(socket1);
+        // game is set up
+        if (player1_turn) {
+            // Read from the first socket
+            if (read_message(socket1) == 0) {
+                // read message was successful and a move was made.
+                player1_turn = !player1_turn;
+            }
+            // read unsuccessful - stay in client loop
+        }
+        else if (!player1_turn) {
+            if (read_message(socket2) == 0) {
+                // read message was successful and a move was made.
+                player1_turn = !player1_turn;
+            }
+            // read unsuccessful - stay in client loop
+        }
+        
+        
         //read_size = read(socket1, buffer, BUFFER_SIZE);
         // if (read_size <= 0) {
         //     // Either an error occurred or the client closed the connection
@@ -236,7 +316,10 @@ void *handle_client(void *arg) {
     free(arg);
     return NULL;
 }
-
+// void gameplay(*args) {
+//     int socket1 = *((int *)arg);
+//     int socket2 = *((int *)arg+1);
+// }
 int main(int argc, char *argv[]) {
     int socket1, socket2, client_socket1, client_socket2;
     struct sockaddr_in server1_address, server2_address, client_address1, client_address2;
