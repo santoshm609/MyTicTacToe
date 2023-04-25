@@ -7,9 +7,6 @@
 #include <netinet/in.h>
 #include <pthread.h>
 
-
-#define PORT1 3301
-#define PORT2 3401
 #define BUFFER_SIZE 1024
 
 typedef struct {
@@ -29,6 +26,7 @@ int num_players = 0;
 int game_started = 0;
 int begn_sent = 0;
 int game_over = 0;
+int PlayCheck = 0;
 
 // tic tac toe game logic
     char board[3][3] = 
@@ -190,7 +188,7 @@ int read_message(int s1, int s2) {
     printf("CODE: %s\n", code);
    
    // error checking done
-    if (strcmp(code, "PLAY") == 0) {
+    if (strcmp(code, "PLAY") == 0 && PlayCheck < 2) {
        //printf("WOOHOO WE GOT A PLAY\n");
         
         // player wants to play
@@ -247,6 +245,11 @@ int read_message(int s1, int s2) {
         print_ll();
         // return successfully
         return 0;
+    }
+    else if(strcmp(code, "PLAY") == 0 && PlayCheck >= 2){
+        char * w = "You can not enter play after the game has already started!";
+        send(s1, w, strlen(w), 0);
+        return 1;
     }
 
     if (strcmp(code, "MOVE") == 0) {
