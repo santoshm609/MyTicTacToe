@@ -120,6 +120,21 @@ int main(int argc, char *argv[]) {
                     }
                 }
             }
+            if (strcmp(fields[0], "INVL") == 0) {
+                // if the move that was played is not equal to client's role, than we can make a move. Otherwise nothing.
+                
+                // Read input from the user
+                printf("Enter text: ");
+                memset(message, 0, sizeof(message));
+                fgets(message, BUFFER_SIZE, stdin);
+                message[strcspn(message, "\n")] = '\0'; // Remove newline character
+
+                // Send the message to the server
+                if (send(socketfd, message, strlen(message), 0) == -1) {
+                    perror("Failed to send message to server");
+                    exit(EXIT_FAILURE);
+                }
+            }
         }
     }
 

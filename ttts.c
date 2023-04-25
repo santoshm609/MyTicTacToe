@@ -50,6 +50,136 @@ int PlayCheck = 0;
 //     }
 // }
 
+int board_full() {
+    int counter = 0;
+    for (int i = 0; i < 3; i ++) {
+        for (int j = 0; j < 3; j ++) {
+            if (board[i][j] == '.') {
+                counter++;
+            }
+        }
+    }
+    if (counter != 0) {
+        // board is not full
+        return 1;
+    }
+    // board is full
+    return 0;
+}
+/*
+return
+0 - nothing
+1 - X
+2 - O
+*/
+int checkRow() {
+  printf("WE ARE CHECKING ROW\n");
+  char check;
+  for (int i = 0; i < 3; i++) {
+    check = board[i][0];
+    printf("CHECKING %c\n", check);
+    if (check == '.') continue;
+    for (int j = 1; j < 3; j++) {
+      if (board[i][j] != check) break;
+
+    }
+  }
+ if (check == 'X') {
+    printf("\nX Wins\n");
+    return 1;
+  }
+  else if (check == 'O') {
+    printf("\nO Wins\n");
+    return 2;
+  } 
+  printf("NO 3 IN A ROW\n");
+  return 0;
+}
+
+/*
+return
+0 - nothing
+1 - X
+2 - O
+*/
+int checkCol() {
+  printf("WE ARE CHECKING COL\n");
+  char check;
+  for (int j = 0; j < 3; j++) {
+    check = board[0][j];
+    printf("CHECKING %c\n", check);
+    if (check == '.') continue;
+    for (int i = 1; i < 3; i++) {
+      if (board[i][j] != check) break;
+      // no win on col
+
+    }
+  }
+
+  if (check == 'X') {
+    printf("\nX Wins\n");
+    return 1;
+  }
+  else if (check == 'O') {
+    printf("\nO Wins\n");
+    return 2;
+  }
+
+  // no win
+  printf("NO 3 IN A COL\n");
+  return 0;
+}
+/*
+return
+0 - nothing
+1 - X
+2 - O
+*/
+int checkDiagonals() {
+    if (board[0][0] != '.') {
+        if (board[0][0] == board[1][1] && board[1][1] == board[2][2]) {
+            if (board[0][0] == 'X') {
+                return 1;
+            }
+            else if (board[0][0] == 'O') {
+                return 2;
+            }
+        }
+    }
+    else if (board[0][2] != '.') {
+        if (board[0][2] == board[1][1] && board[1][1] == board[2][0]) {
+            if (board[0][0] == 'X') {
+                return 1;
+            }
+            else if (board[0][0] == 'O') {
+                return 2;
+            }
+        }
+    }
+    return 0;
+}
+
+// 0 - no win yet
+// 1 - X  
+// 2 - draw
+int check_win() {
+  printf("WE ARE CHECKING WIN\n");
+  if (checkRow() == 1 || checkCol() == 1 || checkDiagonals() == 1) {
+    // no win
+    printf("PLAYER ONE WON\n");
+    return 1;
+  }
+  printf("PLAYER ONE DIDNT WIN\n");
+  else if (checkRow() == 2 || checkCol() == 2 || checkDiagonals() == 2) {
+    // no win
+    printf("PLAYER TWO WON!\n");
+    return 2;
+  }
+  // no win
+  printf("NO ONE WON\n");
+  return 0;
+}
+
 void helper() {
     for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 3; j++) {
@@ -269,7 +399,7 @@ int read_message(int s1, int s2) {
         // get player
 
         Node * curr = node_head;
-        Player p = {};
+        Player p = {0};
         while (curr != NULL) {
             if (curr->player.client_sock == s1) {
                 // found current player
@@ -336,7 +466,6 @@ int read_message(int s1, int s2) {
                     // check if move on board is valid.
                     
                     // print string_board
-                    helper();
 
                     make_string_board();
                     printf("STRING REP OF BOARD: %s\n", string_board);
@@ -348,11 +477,13 @@ int read_message(int s1, int s2) {
                         // move is valid
                         printf("MOVE IS VALID\n");
                         board[x][y] = curr->player.role[0];
+                    } else {
+                        send(s1, "INVL|17|MOVE IS INVALID|", strlen("INVL|17|MOVE IS INVALID|"));
+                        return 1;
                     }
 
                     // print string_board
                     //print_board();
-                    helper();
 
                     make_string_board();
                     printf("STRING REP OF BOARD: %s\n", string_board);
@@ -428,16 +559,18 @@ void *handle_client(void *arg) {
 
     int socket2 = *((int *)arg+1);
     int player1_turn = 1;
+    Player p1 = {0};
+    Player p2 = {0};
 
     while (1) {
+        
         // game is set up
         printf("NUMBER OF PLAYERS = %d\n\n", num_players);
         if (num_players == 2 && game_started == 0) {
             // TODO FIX THISW
             // iterate through each node - get players sock_fd. compare to socket1 / socket 2
             Node * curr = node_head;
-            Player p1 = {0};
-            Player p2 = {0};
+            
             while (curr != NULL) {
                 if (curr->player.client_sock == socket1) {
                     curr->player.role = "X";
@@ -479,6 +612,7 @@ void *handle_client(void *arg) {
 
 
         }
+
         if (player1_turn) {
             printf("PLAYER 1 TURN:\n\n");
             // Read from the first socket
@@ -491,13 +625,54 @@ void *handle_client(void *arg) {
         else if (!player1_turn) {
             printf("PLAYER 2 TURN:\n\n");
             if (read_message(socket2, socket1) == 0) {
+                printf("READ MESSAGE FOR PLAYER 2 WAS SUCCESSFUL\n");
                 // read message was successful and a move was made.
                 player1_turn = !player1_turn;
+                printf("FLIP TURN\n");
             }
             // read unsuccessful - stay in client loop
         }
-    }
+        //
+        // check if win happened
+        // check for win
+        if (check_win() == 1) {
+            // player 1 won
+            
+            // send message to player 1
+            int send_size = send(socket1, "OVER|22|W|You Got 3 In A Row!|", strlen("OVER|22|W|You Got 3 In A Row!|"), 0);
+            printf("Send Size: %d\n", send_size);
+            
+            // send message to player 2
+            send_size = send(socket2, "OVER|27|L|Opponent Got 3 In A Row!|", strlen("OVER|27|L|Opponent Got 3 In A Row!|"), 0);
+            printf("Send Size: %d\n", send_size);
 
+        }
+        else if (check_win() == 2) {
+            // player 2 won
+            
+            // send message to player 2
+            int send_size = send(socket2, "OVER|22|W|You Got 3 In A Row!|", strlen("OVER|22|W|You Got 3 In A Row!|"), 0);
+            printf("Send Size: %d\n", send_size);
+            
+            // send message to player 1
+            send_size = send(socket1, "OVER|27|L|Opponent Got 3 In A Row!|", strlen("OVER|27|L|Opponent Got 3 In A Row!|"), 0);
+            printf("Send Size: %d\n", send_size);
+        }
+        else if (check_win() == 0) {
+            if (board_full() == 0) {
+                // send draw
+                
+                // send message to player 1
+                int send_size = send(socket1, "OVER|16|D|Board Is Full|", strlen("OVER|16|D|Board Is Full|"), 0);
+                printf("Send Size: %d\n", send_size);
+
+                // send message to player 2
+                send_size = send(socket2, "OVER|16|D|Board Is Full|", strlen("OVER|16|D|Board Is Full|"), 0);
+                printf("Send Size: %d\n", send_size);
+            }
+        }
+        
+    }
     // Close both sockets
     close(socket1);
     close(socket2);
