@@ -391,7 +391,6 @@ int read_message(int s1, int s2) {
             //printf("Send Size: %d\n", send_size);
 
         //send(s1, temp, strlen(temp), 0);
-        read_message()
         return 0;
     }
     else if(strcmp(code,"RSGN") == 0){
@@ -427,6 +426,7 @@ int read_message(int s1, int s2) {
 void *handle_client(void *arg) {
     
     int socket1 = *((int *)arg);
+
     int socket2 = *((int *)arg+1);
     int player1_turn = 1;
 
