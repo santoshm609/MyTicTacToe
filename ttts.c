@@ -634,6 +634,5 @@ int main(int argc, char *argv[]) {
     // Close the sockets
     close(server_socket);
 
-
     return 0;
 }
