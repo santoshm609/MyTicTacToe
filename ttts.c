@@ -84,13 +84,13 @@ int read_message(int s1) {
     char cpy[strlen(buffer)];
     strcpy(cpy, buffer);
     char* fields[7]; // array to hold fields
-    int num_fields = 0;
+    int num_fields = -1;
     char* token = strtok(buffer, "|"); // split by vertical bar
     while (token != NULL) {
        
         fields[num_fields] = token;
         num_fields++;
-        printf("field #%d\n", num_fields);
+        printf("field #%d,%c\n", num_fields,token);
         token = strtok(NULL, "|");
     }
     printf("buffer: %s\n", buffer);
@@ -114,6 +114,8 @@ int read_message(int s1) {
 
     if (num_bars != num_fields) {
         // fields not equal return 1
+        printf("%d\n", num_bars);
+        printf("%d\n",num_fields);
         printf("FIELDS AND BARS NOT EQUAL\n");
         return 1;
     }
@@ -262,16 +264,17 @@ int read_message(int s1) {
             }
             curr = curr->next;
         }
-        
-        
-        
-        
-        
+        //fix this so that is formatted properly
+        char* temp = "MOVD";
+        send(s1, temp, strlen(temp), 0);
         
         return 0;
-
     }
-
+    else if(strcmp(code,"RSGN") == 0){
+        char* m = "OVER";
+        send(s1, m, strlen(m), 0);
+        return 1;
+    }
 
 }
 
