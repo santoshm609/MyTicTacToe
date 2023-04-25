@@ -15,7 +15,7 @@
 typedef struct {
     int client_sock;
     char *name;
-    char role;
+    char *role;
 } Player;
 
 typedef struct node {
@@ -28,6 +28,7 @@ Node* node_head = NULL;
 int num_players = 0;
 int game_started = 0;
 int begn_sent = 0;
+int game_over = 0;
 
 // tic tac toe game logic
     char board[3][3] = 
@@ -36,15 +37,39 @@ int begn_sent = 0;
         {'.', '.', '.'},
         {'.', '.', '.'}
     };
+
+// string representation of board
+
+    char string_board[10];
 // x = 1, y = 1 -> middle square
 
-void print_board(char* buf) {
-    for (int i = 0; i < 3; i ++) {
-        for (int j = 0 ; j < 3; j ++) {
-            buf[(i * 3) + j] = board[i][j];
+// void make_string_board() {
+    
+//     for (int i = 0; i < 3; i ++) {
+//         for (int j = 0 ; j < 3; j ++) {
+//             buf[(i * 3) + j] = board[i][j];
+//         }
+//     }
+// }
+
+void helper() {
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            printf("%c ", board[i][j]);
         }
     }
+    printf("\n");
 }
+
+void make_string_board() {
+    for (int i = 0; i < 3; i ++) {
+        for (int j = 0 ; j < 3; j ++) {
+            string_board[(i * 3) + j] = board[i][j];
+        }
+    }
+    string_board[9] = '\0';
+}
+
 
 
 int check_move(int x, int y) {
@@ -54,6 +79,7 @@ int check_move(int x, int y) {
         // move is invalid
         return 1;
     }
+    return 0;
 }
 
 void print_ll() {
@@ -69,14 +95,11 @@ void print_ll() {
 }
 
 
-int read_message(int s1) {
+int read_message(int s1, int s2) {
     char buffer[BUFFER_SIZE];
     memset(buffer, 0, BUFFER_SIZE);
     int read_size;
 
-    
-
-    
     // split message into fields
     read_size = recv(s1, buffer, sizeof(buffer), 0);
     printf("Read Size: %d\n", read_size);
@@ -84,13 +107,13 @@ int read_message(int s1) {
     char cpy[strlen(buffer)];
     strcpy(cpy, buffer);
     char* fields[7]; // array to hold fields
-    int num_fields = -1;
+    int num_fields = 0;
     char* token = strtok(buffer, "|"); // split by vertical bar
     while (token != NULL) {
        
         fields[num_fields] = token;
         num_fields++;
-        printf("field #%d,%c\n", num_fields,token);
+        printf("field #%d, token: %s, token length: %d\n", num_fields,token, strlen(token));
         token = strtok(NULL, "|");
     }
     printf("buffer: %s\n", buffer);
@@ -247,31 +270,154 @@ int read_message(int s1) {
             if (curr->player.client_sock == s1) {
                 // found current player
                 printf("Found Current player %s\n", curr->player.name);
+                // printf("String role: %s\n", curr->player.role);
+                // printf("Char role: %c\n", curr->player.role[0]);
                 // check if role matches what was inputted.
                 
                 // role is correct
-                if ((strlen(fields[2]) == 1) && (fields[2][0] == curr->player.role)) {
-                    if (strlen(fields[3]) != 3) {
-                        printf("IMPROPERLY FORMATTED MOVE\n");
+                //if ((strlen(fields[2]) == 1) && ((strcmp(fields[2][0], curr->player.role) == 0) {
+                    // printf("ARE WE IN IF SSTATEMENT\n");
+                    // // properly formatted move
+                    // if (strlen(fields[3]) != 3) {
+                    //     printf("IMPROPERLY FORMATTED MOVE\n");
+                    //     return 1;
+                    // }
+                    
+
+                    char* move = strdup(fields[3]);
+                    printf("String Rep of MOVE: %s\n", move);
+
+
+
+                    // int array for x, y
+                    int coordinates[2];
+
+                    // token - make sure we only read the first
+                    char* tok;
+                    int i = 0;
+                    tok = strtok(move, ",");
+                    while (tok != NULL) {
+                        if (i > 1) {
+                            printf("INVALID FORMAT\n");
+                        }
+                        coordinates[i] = atoi(tok);
+                        tok = strtok(NULL, ",");
+                        i++;
+                    }
+                    // should print out 2, 2
+                    printf("X: %d, Y: %d\n", coordinates[0], coordinates[1]);
+                    
+                    //printf("Begin X\n");
+                    int x = coordinates[0];
+                    x--;
+                    //printf("X: %d\n", x);
+                    //printf("End X\n");
+                    
+                    //printf("Begin Y\n");
+                    int y = coordinates[1];
+                    //printf("Y: %d\n", y);
+                    y--;
+                    //printf("End Y\n");
+
+                    if ((x < 0 || x > 2) || (y < 0 || y > 2)) {
+                        printf("INVALID MOVE\nNUMBERS OUT OF RANGE\n");
                         return 1;
                     }
-                    char* move = strdup(fields[3]);
-                    int x = atoi(move[0]);
-                    int y = atoi(move[2]);
+
+                    // should print out 1,
                     printf("MOVE: (%d,%d)\n", x, y);
-                    return 0;
-                }
+
+                    // move syntax is valid
+                    // check if move on board is valid.
+                    
+                    // print string_board
+                    helper();
+
+                    make_string_board();
+                    printf("STRING REP OF BOARD: %s\n", string_board);
+
+                    // print string_board as string
+                    //xprintf("STRING REP\n%s\n", string_board);
+
+                    if (check_move(x, y) == 0) {
+                        // move is valid
+                        printf("MOVE IS VALID\n");
+                        printf("NO MORE SEG FAULT\n");
+                        board[x][y] = curr->player.role[0];
+                    }
+
+                    // print string_board
+                    //print_board();
+                    helper();
+
+                    make_string_board();
+                    printf("STRING REP OF BOARD: %s\n", string_board);
+
+                    // print string_board as string
+                    //printf("STRING REP\n%s\n", string_board);
+
+
+               // } // need to comment this back in
             }
             curr = curr->next;
         }
         //fix this so that is formatted properly
         char* temp = "MOVD";
-        send(s1, temp, strlen(temp), 0);
+
         
+        // make buffer
+            char buffer[1000];
+            memset(buffer, 0, BUFFER_SIZE);
+
+            // store message for player 1
+            sprintf(buffer, "MOVD|11|%c|%s|", curr->player.role[0], string_board);
+            
+            // send message to player 1
+            int send_size = send(s1, strdup(buffer), strlen(buffer), 0);
+            //printf("Send Size: %d\n", send_size);
+
+            // reset buffer
+            memset(buffer, 0, BUFFER_SIZE);
+
+            // store message for player 2
+            sprintf(buffer, "MOVD|11|%c|%s|", curr->player.role[0], string_board);
+            
+            // send message to player 2
+            send_size = send(s2, strdup(buffer), strlen(buffer), 0);
+            //printf("Send Size: %d\n", send_size);
+
+        //send(s1, temp, strlen(temp), 0);
         return 0;
     }
     else if(strcmp(code,"RSGN") == 0){
+        
+
+
+
         char* m = "OVER";
+
+
+
+        char buffer[1000];
+        memset(buffer, 0, BUFFER_SIZE);
+
+        // store message for player 1
+        sprintf(buffer, "MOVD|11|%c|%s|", curr->player.role[0], string_board);
+        
+        // send message to player 1
+        int send_size = send(s1, strdup(buffer), strlen(buffer), 0);
+        //printf("Send Size: %d\n", send_size);
+
+        // reset buffer
+        memset(buffer, 0, BUFFER_SIZE);
+
+        // store message for player 2
+        sprintf(buffer, "MOVD|11|%c|%s|", curr->player.role[0], string_board);
+        
+        // send message to player 2
+        send_size = send(s2, strdup(buffer), strlen(buffer), 0);
+        //printf("Send Size: %d\n", send_size);
+
         send(s1, m, strlen(m), 0);
         return 1;
     }
@@ -288,42 +434,56 @@ void *handle_client(void *arg) {
         // game is set up
         printf("NUMBER OF PLAYERS = %d\n\n", num_players);
         if (num_players == 2 && game_started == 0) {
+            // TODO FIX THISW
             // iterate through each node - get players sock_fd. compare to socket1 / socket 2
             Node * curr = node_head;
+            Player p1 = {0};
+            Player p2 = {0};
             while (curr != NULL) {
-                if (curr->player.client_sock == socket2) {
-                    printf("Current Player is on Socket 1. Opponent Player is on Socket 2\n");
-                    printf("NAME: %s\n", curr->player.name);
-                    curr->player.role = 'X';
-                    char buffer[1000];
-                    memset(buffer, 0, BUFFER_SIZE);
-                    sprintf(buffer, "BEGN|%d|%c|Opponent is %s|", (15 + strlen(curr->player.name)), curr->player.role, curr->player.name);
-                    printf("Server Message to be sent: %s\n", buffer);
-                    int send_size = send(socket1, strdup(buffer), strlen(buffer), 0);
-                    printf("Send Size: %d\n", send_size);
-                }
-                else if (curr->player.client_sock == socket1) {
-                    printf("Current Player is on Socket 2. Opponent Player is on Socket 1\n");
-                    printf("NAME: %s\n", curr->player.name);
-                    curr->player.role = 'O';
-                    char buffer[1000];
-                    memset(buffer, 0, BUFFER_SIZE);
-                    sprintf(buffer, "BEGN|%d|%c|Opponent is %s|", (15 + strlen(curr->player.name)), curr->player.role, curr->player.name);
-                    printf("Server Message to be sent: %s\n", buffer);
-                    int send_size = send(socket2, strdup(buffer), strlen(buffer), 0);
-                    printf("Send Size: %d\n", send_size);
-                }
+                if (curr->player.client_sock == socket1) {
+                    curr->player.role = "X";
+                    p1 = curr->player;
 
+                }
+                else if (curr->player.client_sock == socket2) {
+                    curr->player.role = "O";
+                    p2 = curr->player;
+                }
                 curr = curr->next;
             }
             // BEGN messages have been sent to both players.
             game_started = 1;
             printf("GAME STARTED!\ngame_started = %d\n", game_started);
+            printf("Player1\nName: %s\nSocket: %d\nRole: %s\n", p1.name, p1.client_sock, p1.role);
+            printf("Player2\nName: %s\nSocket: %d\nRole: %s\n", p2.name, p2.client_sock, p2.role);
+
+            // make buffer
+            char buffer[1000];
+            memset(buffer, 0, BUFFER_SIZE);
+
+            // store message for player 1
+            sprintf(buffer, "BEGN|%d|%s|Opponent is %s|", (15 + strlen(p2.name)), p1.role, p2.name);
+            
+            // send message to player 1
+            int send_size = send(socket1, strdup(buffer), strlen(buffer), 0);
+            printf("Send Size: %d\n", send_size);
+
+            // reset buffer
+            memset(buffer, 0, BUFFER_SIZE);
+
+            // store message for player 2
+            sprintf(buffer, "BEGN|%d|%s|Opponent is %s|", (15 + strlen(p1.name)), p2.role, p1.name);
+            
+            // send message to player 2
+            send_size = send(socket2, strdup(buffer), strlen(buffer), 0);
+            printf("Send Size: %d\n", send_size);
+
+
         }
         if (player1_turn) {
             printf("PLAYER 1 TURN:\n\n");
             // Read from the first socket
-            if (read_message(socket1) == 0) {
+            if (read_message(socket1, socket2) == 0) {
                 // read message was successful and a move was made.
                 player1_turn = !player1_turn;
             }
@@ -331,7 +491,7 @@ void *handle_client(void *arg) {
         }
         else if (!player1_turn) {
             printf("PLAYER 2 TURN:\n\n");
-            if (read_message(socket2) == 0) {
+            if (read_message(socket2, socket1) == 0) {
                 // read message was successful and a move was made.
                 player1_turn = !player1_turn;
             }
