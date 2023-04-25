@@ -8,7 +8,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
-#define PORT 3401
+#define PORT 3301
 #define BUFFER_SIZE 1024
 
 char * my_role;

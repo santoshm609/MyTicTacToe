@@ -506,74 +506,120 @@ void *handle_client(void *arg) {
 //     int socket2 = *((int *)arg+1);
 // }
 int main(int argc, char *argv[]) {
-    int socket1, socket2, client_socket1, client_socket2;
-    struct sockaddr_in server1_address, server2_address, client_address1, client_address2;
+    // int socket1, socket2, client_socket1, client_socket2;
+    // struct sockaddr_in server1_address, server2_address, client_address1, client_address2;
+    // socklen_t client_address1_len, client_address2_len;
+    // pthread_t thread_id;
+    // int *arg;
+
+    // // Create the first socket
+    // socket1 = socket(AF_INET, SOCK_STREAM, 0);
+    // if (socket1 == -1) {
+    //     perror("Failed to create socket1");
+    //     exit(EXIT_FAILURE);
+    // }
+
+    // // Set up the first server address
+    // memset(&server1_address, 0, sizeof(server1_address));
+    // server1_address.sin_family = AF_INET;
+    // server1_address.sin_addr.s_addr = INADDR_ANY;
+    // server1_address.sin_port = htons(PORT1);
+
+    // // Bind the first socket to the server address
+    // if (bind(socket1, (struct sockaddr *) &server1_address, sizeof(server1_address)) == -1) {
+    //     perror("Failed to bind socket1");
+    //     exit(EXIT_FAILURE);
+    // }
+
+    // // Listen for incoming connections on the first socket
+    // if (listen(socket1, 1) == -1) {
+    //     perror("Failed to listen on socket1");
+    //     exit(EXIT_FAILURE);
+    // }
+
+    // // Create the second socket
+    // socket2 = socket(AF_INET, SOCK_STREAM, 0);
+    // if (socket2 == -1) {
+    //     perror("Failed to create socket2");
+    //     exit(EXIT_FAILURE);
+    // }
+
+    // // Set up the second server address
+    // memset(&server2_address, 0, sizeof(server2_address));
+    // server2_address.sin_family = AF_INET;
+    // server2_address.sin_addr.s_addr = INADDR_ANY;
+    // server2_address.sin_port = htons(PORT2);
+
+    // // Bind the second socket to the server address
+    // if (bind(socket2, (struct sockaddr *) &server2_address, sizeof(server2_address)) == -1) {
+    //     perror("Failed to bind socket2");
+    //     exit(EXIT_FAILURE);
+    // }
+
+    // // Listen for incoming connections on the second socket
+    // if (listen(socket2, 1) == -1) {
+    //     perror("Failed to listen on socket2");
+    //     exit(EXIT_FAILURE);
+    // }
+
+    // // Accept incoming connections on both sockets
+    // client_address1_len = sizeof(client_address1);
+    // client_address2_len = sizeof(client_address2);
+    // client_socket1 = accept(socket1, (struct sockaddr *) &client_address1, &client_address1_len);
+    // if (client_socket1 == -1) {
+    //     perror("Failed to accept incoming connection on socket1");
+    //     exit(EXIT_FAILURE);
+    // }
+
+    // client_socket2 = accept(socket2, (struct sockaddr *) &client_address2, &client_address2_len);
+    // if (client_socket2 == -1) {
+    //     perror("Failed to accept incoming connection on socket2");
+    //     exit(EXIT_FAILURE);
+    // }
+
+    int server_socket, client_socket1, client_socket2;
+    struct sockaddr_in server_address, client_address1, client_address2;
     socklen_t client_address1_len, client_address2_len;
-    pthread_t thread_id;
-    int *arg;
 
-    // Create the first socket
-    socket1 = socket(AF_INET, SOCK_STREAM, 0);
-    if (socket1 == -1) {
-        perror("Failed to create socket1");
+
+
+    // Create the server socket
+    server_socket = socket(AF_INET, SOCK_STREAM, 0);
+    if (server_socket == -1) {
+        perror("Failed to create server socket");
         exit(EXIT_FAILURE);
     }
 
-    // Set up the first server address
-    memset(&server1_address, 0, sizeof(server1_address));
-    server1_address.sin_family = AF_INET;
-    server1_address.sin_addr.s_addr = INADDR_ANY;
-    server1_address.sin_port = htons(PORT1);
+    // Set up the server address
+    memset(&server_address, 0, sizeof(server_address));
+    server_address.sin_family = AF_INET;
+    server_address.sin_addr.s_addr = INADDR_ANY;
+    server_address.sin_port = htons(atoi(argv[1]));
 
-    // Bind the first socket to the server address
-    if (bind(socket1, (struct sockaddr *) &server1_address, sizeof(server1_address)) == -1) {
-        perror("Failed to bind socket1");
+    // Bind the server socket to the server address
+    if (bind(server_socket, (struct sockaddr *) &server_address, sizeof(server_address)) == -1) {
+        perror("Failed to bind server socket");
         exit(EXIT_FAILURE);
     }
 
-    // Listen for incoming connections on the first socket
-    if (listen(socket1, 1) == -1) {
-        perror("Failed to listen on socket1");
+    // Listen for incoming connections on the server socket
+    if (listen(server_socket, 2) == -1) {
+        perror("Failed to listen on server socket");
         exit(EXIT_FAILURE);
     }
 
-    // Create the second socket
-    socket2 = socket(AF_INET, SOCK_STREAM, 0);
-    if (socket2 == -1) {
-        perror("Failed to create socket2");
-        exit(EXIT_FAILURE);
-    }
-
-    // Set up the second server address
-    memset(&server2_address, 0, sizeof(server2_address));
-    server2_address.sin_family = AF_INET;
-    server2_address.sin_addr.s_addr = INADDR_ANY;
-    server2_address.sin_port = htons(PORT2);
-
-    // Bind the second socket to the server address
-    if (bind(socket2, (struct sockaddr *) &server2_address, sizeof(server2_address)) == -1) {
-        perror("Failed to bind socket2");
-        exit(EXIT_FAILURE);
-    }
-
-    // Listen for incoming connections on the second socket
-    if (listen(socket2, 1) == -1) {
-        perror("Failed to listen on socket2");
-        exit(EXIT_FAILURE);
-    }
-
-    // Accept incoming connections on both sockets
+    // Accept incoming connections on the server socket
     client_address1_len = sizeof(client_address1);
     client_address2_len = sizeof(client_address2);
-    client_socket1 = accept(socket1, (struct sockaddr *) &client_address1, &client_address1_len);
+    client_socket1 = accept(server_socket, (struct sockaddr *) &client_address1, &client_address1_len);
     if (client_socket1 == -1) {
-        perror("Failed to accept incoming connection on socket1");
+        perror("Failed to accept incoming connection on server socket");
         exit(EXIT_FAILURE);
     }
 
-    client_socket2 = accept(socket2, (struct sockaddr *) &client_address2, &client_address2_len);
+    client_socket2 = accept(server_socket, (struct sockaddr *) &client_address2, &client_address2_len);
     if (client_socket2 == -1) {
-        perror("Failed to accept incoming connection on socket2");
+        perror("Failed to accept incoming connection on server socket");
         exit(EXIT_FAILURE);
     }
 
@@ -586,8 +632,8 @@ int main(int argc, char *argv[]) {
     pthread_join(tid, NULL);
 
     // Close the sockets
-    close(socket1);
-    close(socket2);
+    close(server_socket);
+
 
     return 0;
 }
