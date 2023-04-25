@@ -342,7 +342,6 @@ int read_message(int s1, int s2) {
                     if (check_move(x, y) == 0) {
                         // move is valid
                         printf("MOVE IS VALID\n");
-                        printf("NO MORE SEG FAULT\n");
                         board[x][y] = curr->player.role[0];
                     }
 
@@ -359,12 +358,17 @@ int read_message(int s1, int s2) {
 
                // } // need to comment this back in
             }
-            curr = curr->next;
+            if(curr->next != NULL){
+                curr = curr->next;
+                printf("iterated");
+            }
+            else{
+                break;
+            }
         }
         //fix this so that is formatted properly
         char* temp = "MOVD";
 
-        
         // make buffer
             char buffer[1000];
             memset(buffer, 0, BUFFER_SIZE);
@@ -387,17 +391,13 @@ int read_message(int s1, int s2) {
             //printf("Send Size: %d\n", send_size);
 
         //send(s1, temp, strlen(temp), 0);
+        read_message()
         return 0;
     }
     else if(strcmp(code,"RSGN") == 0){
-        
-
-
-
         char* m = "OVER";
 
-
-
+        Node * curr = node_head;
         char buffer[1000];
         memset(buffer, 0, BUFFER_SIZE);
 
