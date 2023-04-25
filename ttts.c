@@ -8,8 +8,8 @@
 #include <pthread.h>
 
 
-#define PORT1 3300
-#define PORT2 3400
+#define PORT1 3301
+#define PORT2 3401
 #define BUFFER_SIZE 1024
 
 typedef struct {
@@ -266,10 +266,12 @@ int read_message(int s1, int s2) {
         // get player
 
         Node * curr = node_head;
+        Player p = {};
         while (curr != NULL) {
             if (curr->player.client_sock == s1) {
                 // found current player
                 printf("Found Current player %s\n", curr->player.name);
+                p = curr->player;
                 // printf("String role: %s\n", curr->player.role);
                 // printf("Char role: %c\n", curr->player.role[0]);
                 // check if role matches what was inputted.
@@ -358,13 +360,7 @@ int read_message(int s1, int s2) {
 
                // } // need to comment this back in
             }
-            if(curr->next != NULL){
-                curr = curr->next;
-                printf("iterated");
-            }
-            else{
-                break;
-            }
+            curr = curr->next;
         }
         //fix this so that is formatted properly
         char* temp = "MOVD";
@@ -374,21 +370,21 @@ int read_message(int s1, int s2) {
             memset(buffer, 0, BUFFER_SIZE);
 
             // store message for player 1
-            sprintf(buffer, "MOVD|11|%c|%s|", curr->player.role[0], string_board);
+            sprintf(buffer, "MOVD|11|%c|%s|", p.role[0], string_board);
             
             // send message to player 1
             int send_size = send(s1, strdup(buffer), strlen(buffer), 0);
-            //printf("Send Size: %d\n", send_size);
+            printf("Send Size: %d\n", send_size);
 
             // reset buffer
             memset(buffer, 0, BUFFER_SIZE);
 
             // store message for player 2
-            sprintf(buffer, "MOVD|11|%c|%s|", curr->player.role[0], string_board);
+            sprintf(buffer, "MOVD|11|%c|%s|", p.role[0], string_board);
             
             // send message to player 2
             send_size = send(s2, strdup(buffer), strlen(buffer), 0);
-            //printf("Send Size: %d\n", send_size);
+            printf("Send Size: %d\n", send_size);
 
         //send(s1, temp, strlen(temp), 0);
         return 0;
@@ -400,22 +396,22 @@ int read_message(int s1, int s2) {
         char buffer[1000];
         memset(buffer, 0, BUFFER_SIZE);
 
-        // store message for player 1
-        sprintf(buffer, "MOVD|11|%c|%s|", curr->player.role[0], string_board);
+        // // store message for player 1
+        // sprintf(buffer, "MOVD|11|%c|%s|", curr->player.role[0], string_board);
         
-        // send message to player 1
-        int send_size = send(s1, strdup(buffer), strlen(buffer), 0);
-        //printf("Send Size: %d\n", send_size);
+        // // send message to player 1
+        // int send_size = send(s1, strdup(buffer), strlen(buffer), 0);
+        // //printf("Send Size: %d\n", send_size);
 
-        // reset buffer
-        memset(buffer, 0, BUFFER_SIZE);
+        // // reset buffer
+        // memset(buffer, 0, BUFFER_SIZE);
 
-        // store message for player 2
-        sprintf(buffer, "MOVD|11|%c|%s|", curr->player.role[0], string_board);
+        // // store message for player 2
+        // sprintf(buffer, "MOVD|11|%c|%s|", curr->player.role[0], string_board);
         
-        // send message to player 2
-        send_size = send(s2, strdup(buffer), strlen(buffer), 0);
-        //printf("Send Size: %d\n", send_size);
+        // // send message to player 2
+        // send_size = send(s2, strdup(buffer), strlen(buffer), 0);
+        // //printf("Send Size: %d\n", send_size);
 
         send(s1, m, strlen(m), 0);
         return 1;
