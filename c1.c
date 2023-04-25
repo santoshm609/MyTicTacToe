@@ -8,7 +8,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
-#define PORT 3300
+#define PORT 3301
 #define BUFFER_SIZE 1024
 
 char * my_role;
@@ -44,6 +44,7 @@ int main(int argc, char *argv[]) {
 
     // Read input from the user
         printf("Enter text: ");
+        memset(message, 0, sizeof(message));
         fgets(message, BUFFER_SIZE, stdin);
         message[strcspn(message, "\n")] = '\0'; // Remove newline character
 
@@ -57,6 +58,7 @@ int main(int argc, char *argv[]) {
     while (1) {
 
         // Read the response from the server
+        memset(buffer, 0, sizeof(buffer));
         read_size = read(socketfd, buffer, BUFFER_SIZE);
         if (read_size == -1) {
             perror("Failed to read from server");
@@ -68,6 +70,7 @@ int main(int argc, char *argv[]) {
             printf("Read Size: %d\n", read_size);
             printf("%s\n", buffer);
             char cpy[strlen(buffer)];
+            memset(cpy, 0, sizeof(cpy));
             strcpy(cpy, buffer);
             char* fields[7]; // array to hold fields
             int num_fields = 0;
@@ -81,17 +84,40 @@ int main(int argc, char *argv[]) {
             }
             printf("buffer: %s\n", buffer);
             printf("cpy: %s\n", cpy);
-            printf("Server response: %.*s\n", read_size, buffer);
+            printf("Server response: %.*s\n", read_size, cpy);
             if (strcmp(fields[0], "BEGN") == 0) {
-                // Read input from the user
-                printf("Enter text: ");
-                fgets(message, BUFFER_SIZE, stdin);
-                message[strcspn(message, "\n")] = '\0'; // Remove newline character
+                my_role = strdup(fields[2]);
+                printf("MY ROLE = %s\n", my_role);
+                // if client is X, then enter move
+                if (strcmp(my_role, "X") == 0) {
+                    // Read input from the user
+                    printf("Enter text: ");
+                    memset(message, 0, sizeof(message));
+                    fgets(message, BUFFER_SIZE, stdin);
+                    message[strcspn(message, "\n")] = '\0'; // Remove newline character
 
-                // Send the message to the server
-                if (send(socketfd, message, strlen(message), 0) == -1) {
-                    perror("Failed to send message to server");
-                    exit(EXIT_FAILURE);
+                    // Send the message to the server
+                    if (send(socketfd, message, strlen(message), 0) == -1) {
+                        perror("Failed to send message to server");
+                        exit(EXIT_FAILURE);
+                    }
+                }
+                
+            }
+            if (strcmp(fields[0], "MOVD") == 0) {
+                // if the move that was played is not equal to client's role, than we can make a move. Otherwise nothing.
+                if (strcmp(my_role, fields[2]) != 0) {
+                    // Read input from the user
+                    printf("Enter text: ");
+                    memset(message, 0, sizeof(message));
+                    fgets(message, BUFFER_SIZE, stdin);
+                    message[strcspn(message, "\n")] = '\0'; // Remove newline character
+
+                    // Send the message to the server
+                    if (send(socketfd, message, strlen(message), 0) == -1) {
+                        perror("Failed to send message to server");
+                        exit(EXIT_FAILURE);
+                    }
                 }
             }
         }
