@@ -25,6 +25,34 @@ typedef struct node {
 Node* node_head = NULL;
 
 int num_players = 0;
+int game_started = 0;
+
+// tic tac toe game logic
+    char board[3][3] = 
+    {
+        {'.', '.', '.'},
+        {'.', '.', '.'},
+        {'.', '.', '.'}
+    };
+// x = 1, y = 1 -> middle square
+
+void print_board(char* buf) {
+    for (int i = 0; i < 3; i ++) {
+        for (int j = 0 ; j < 3; j ++) {
+            buf[(i * 3) + j] = board[i][j];
+        }
+    }
+}
+
+
+int check_move(int x, int y) {
+
+    // if board is not empty
+    if (board[x][y] != '.') {
+        // move is invalid
+        return 1;
+    }
+}
 
 void print_ll() {
     // print out all names in list
@@ -38,59 +66,14 @@ void print_ll() {
     printf("NAMES PRINTED\n");
 }
 
-// void parse_message(char* buffer) {
-//     char code[5], length_str[4];
-//     int length, i, j;
-    
-//     char* fields[7]; // array to hold fields
-//     int num_fields = 0;
-//     char* token = strtok(buffer, "|"); // split by vertical bar
-//     while (token != NULL) {
-//         fields[num_fields] = token;
-//         num_fields++;
-//         token = strtok(NULL, "|");
-//     }
-
-//     // check that message has at least two fields
-//     if (num_fields < 2) {
-//         char message[256] = "INVL|15|Invalid Format|";
-//         //send(s1, message, sizeof(message), 0);
-//         return 0;
-//     }
-
-//     char* code = fields[0];
-//     int length = atoi(fields[1]);
-//     printf("%s, %d\n", code, length);
-
-//     // Parse the code
-//     strncpy(code, buffer, 4);
-//     code[4] = '\0';
-
-//     // Parse the length
-//     strncpy(length_str, buffer + 5, 3);
-//     length_str[3] = '\0';
-//     length = atoi(length_str);
-
-//     // Extract the remaining message
-//     for (i = 0, j = 9; i < length; i++, j++) {
-//         printf("%c", buffer[j]);
-//     }
-//     printf("\n");
-//     printf("%s\n", code);
-//     printf("%d\n", length);
-// }
-
 
 int read_message(int s1) {
     char buffer[BUFFER_SIZE];
     memset(buffer, 0, BUFFER_SIZE);
     int read_size;
 
-    // // Receive messages and parse them
-    // while ((read_size = recv(s1, buffer, sizeof(buffer), 0)) > 0) {
-    //     buffer[read_size] = '\0';
-    //     parse_message(buffer);
-    // }
+    
+
     
     // split message into fields
     read_size = recv(s1, buffer, sizeof(buffer), 0);
@@ -102,12 +85,14 @@ int read_message(int s1) {
     int num_fields = 0;
     char* token = strtok(buffer, "|"); // split by vertical bar
     while (token != NULL) {
+       
         fields[num_fields] = token;
         num_fields++;
+        printf("field #%d\n", num_fields);
         token = strtok(NULL, "|");
     }
-    //printf("buffer: %s\n", buffer);
-    //printf("cpy: %s\n", cpy);
+    printf("buffer: %s\n", buffer);
+    printf("cpy: %s\n", cpy);
 
 
     // check that message has at least two fields
@@ -127,8 +112,10 @@ int read_message(int s1) {
 
     if (num_bars != num_fields) {
         // fields not equal return 1
+        printf("FIELDS AND BARS NOT EQUAL\n");
         return 1;
     }
+    printf("NUM BARS == NUM_FIELDS\n");
 
     char* code = fields[0];
     int length = atoi(fields[1]);
@@ -172,6 +159,8 @@ int read_message(int s1) {
         // go back to client loop
         return 1;
     }
+
+    printf("CODE: %s", code);
    
    // error checking done
     if (strcmp(code, "PLAY") == 0) {
@@ -233,6 +222,10 @@ int read_message(int s1) {
         return 0;
     }
 
+    if (strcmp(code, "MOVE")) {
+        printf("WOOHOO WERE MOVING!\n");
+    }
+
 
 }
 
@@ -249,24 +242,27 @@ void *handle_client(void *arg) {
             // iterate through each node - get players sock_fd. compare to socket1 / socket 2
             Node * curr = node_head;
             while (curr != NULL) {
-                if (curr->player.client_sock == socket1) {
-                    printf("Current Player is on Socket 1\n");
+                if (curr->player.client_sock == socket2) {
+                    printf("Current Player is on Socket 1. Opponent Player is on Socket 2\n");
                     printf("NAME: %s\n", curr->player.name);
                     char buffer[1000];
                     memset(buffer, 0, BUFFER_SIZE);
-                    sprintf(buffer, "BEGN|%d|X|%s|", (3 + strlen(curr->player.name)), curr->player.name);
+                    sprintf(buffer, "BEGN|%d|X|Opponent is %s|", (15 + strlen(curr->player.name)), curr->player.name);
                     printf("Server Message to be sent: %s\n", buffer);
-                    send(socket1, buffer, sizeof(buffer), 0);
+                    int send_size = send(socket1, strdup(buffer), strlen(buffer), 0);
+                    printf("Send Size: %d\n", send_size);
                 }
-                else if (curr->player.client_sock == socket2) {
-                    printf("Current Player is on Socket 2\n");
+                else if (curr->player.client_sock == socket1) {
+                    printf("Current Player is on Socket 2. Opponent Player is on Socket 1\n");
                     printf("NAME: %s\n", curr->player.name);
                     char buffer[1000];
                     memset(buffer, 0, BUFFER_SIZE);
-                    sprintf(buffer, "BEGN|%d|O|%s|", (3 + strlen(curr->player.name)), curr->player.name);
+                    sprintf(buffer, "BEGN|%d|O|Opponent is %s|", (15 + strlen(curr->player.name)), curr->player.name);
                     printf("Server Message to be sent: %s\n", buffer);
-                    send(socket2, buffer, sizeof(buffer), 0);
+                    int send_size = send(socket2, strdup(buffer), strlen(buffer), 0);
+                    printf("Send Size: %d\n", send_size);
                 }
+
                 curr = curr->next;
             }
         }
