@@ -11,6 +11,8 @@
 #define PORT 3300
 #define BUFFER_SIZE 1024
 
+char * my_role;
+
 int main(int argc, char *argv[]) {
     int socketfd, read_size;
     struct sockaddr_in server_address;
