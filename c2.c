@@ -40,9 +40,7 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    // Continuously read from and send text to the server
-    while (1) {
-        // Read input from the user
+    // Read input from the user
         printf("Enter text: ");
         fgets(message, BUFFER_SIZE, stdin);
         message[strcspn(message, "\n")] = '\0'; // Remove newline character
@@ -53,6 +51,9 @@ int main(int argc, char *argv[]) {
             exit(EXIT_FAILURE);
         }
 
+    // Continuously read from and send text to the server
+    while (1) {
+
         // Read the response from the server
         read_size = read(socketfd, buffer, BUFFER_SIZE);
         if (read_size == -1) {
@@ -62,7 +63,35 @@ int main(int argc, char *argv[]) {
             printf("Server closed the connection\n");
             break;
         } else {
+            printf("Read Size: %d\n", read_size);
+            printf("%s\n", buffer);
+            char cpy[strlen(buffer)];
+            strcpy(cpy, buffer);
+            char* fields[7]; // array to hold fields
+            int num_fields = 0;
+            char* token = strtok(buffer, "|"); // split by vertical bar
+            while (token != NULL) {
+            
+                fields[num_fields] = token;
+                num_fields++;
+                printf("field #%d\n", num_fields);
+                token = strtok(NULL, "|");
+            }
+            printf("buffer: %s\n", buffer);
+            printf("cpy: %s\n", cpy);
             printf("Server response: %.*s\n", read_size, buffer);
+            if (strcmp(fields[0], "BEGN") == 0) {
+                // Read input from the user
+                printf("Enter text: ");
+                fgets(message, BUFFER_SIZE, stdin);
+                message[strcspn(message, "\n")] = '\0'; // Remove newline character
+
+                // Send the message to the server
+                if (send(socketfd, message, strlen(message), 0) == -1) {
+                    perror("Failed to send message to server");
+                    exit(EXIT_FAILURE);
+                }
+            }
         }
     }
 
