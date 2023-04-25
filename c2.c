@@ -8,7 +8,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
-#define PORT 3301
+#define PORT 3302 
 #define BUFFER_SIZE 1024
 
 char * my_role;
@@ -28,10 +28,10 @@ int main(int argc, char *argv[]) {
     // Set up the server address
     memset(&server_address, 0, sizeof(server_address));
     server_address.sin_family = AF_INET;
-    server_address.sin_port = htons(PORT);
+    server_address.sin_port = htons(atoi(argv[2]));
 
     // Convert the server IP address from string to binary form
-    if (inet_pton(AF_INET, "127.0.0.1", &server_address.sin_addr) <= 0) {
+    if (inet_pton(AF_INET, argv[1], &server_address.sin_addr) <= 0) {
         perror("Invalid server IP address");
         exit(EXIT_FAILURE);
     }
