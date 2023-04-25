@@ -6,6 +6,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <pthread.h>
+#include <signal.h>
+#include <errno.h>
 
 #define BUFFER_SIZE 1024
 
@@ -38,7 +40,7 @@ int PlayCheck = 0;
 
 // string representation of board
 
-    char string_board[10];
+char string_board[10];
 // x = 1, y = 1 -> middle square
 
 // void make_string_board() {
@@ -49,6 +51,23 @@ int PlayCheck = 0;
 //         }
 //     }
 // }
+
+
+
+int checkConnection(int fd){
+    // try to write data to the socket
+    int n = write(fd, "Check", strlen("Check"));
+    if (n == -1 && errno == EPIPE) {
+        // handle EPIPE error
+        printf("Session-level Error.");
+        exit(EXIT_FAILURE);
+    } else if (n == -1) {
+        // handle other write() error
+        perror("Error writing to socket");
+        exit(EXIT_FAILURE);
+    }
+    return 0;
+}
 
 int board_full() {
     int counter = 0;
@@ -169,7 +188,7 @@ int check_win() {
     printf("PLAYER ONE WON\n");
     return 1;
   }
-  printf("PLAYER ONE DIDNT WIN\n");
+  //printf("PLAYER ONE DIDNT WIN\n");
   else if (checkRow() == 2 || checkCol() == 2 || checkDiagonals() == 2) {
     // no win
     printf("PLAYER TWO WON!\n");
@@ -251,9 +270,11 @@ int read_message(int s1, int s2) {
     // check that message has at least two fields
     if (num_fields < 2) {
         char* m = "INVL|15|Invalid Format|";
-        send(s1, m, strlen(m), 0);
-        // go back to client loop
-        return 1;
+        if(checkConnection(s1) == 0){
+            send(s1, m, strlen(m), 0);
+            // go back to client loop
+            return 1;
+        }
     }
 
     int num_bars = 0;
@@ -309,7 +330,7 @@ int read_message(int s1, int s2) {
     }
     else {
         char* m = "INVL|21|Incorrect Formatting|";
-        send(s1, m, strlen(m), 0);
+        write(s1, m, strlen(m));
         printf("false mf\n");
         // go back to client loop
         return 1;
@@ -319,6 +340,7 @@ int read_message(int s1, int s2) {
    
    // error checking done
     if (strcmp(code, "PLAY") == 0 && PlayCheck < 2) {
+        PlayCheck ++;
        //printf("WOOHOO WE GOT A PLAY\n");
         
         // player wants to play
@@ -329,9 +351,11 @@ int read_message(int s1, int s2) {
         while (n != NULL) {
             if (strcmp(n->player.name, fields[2]) == 0) {
                 char* m = "INVL|22|Choose Different Name|";
-                send(s1, m, strlen(m), 0);
-                // go back to client loops
-                return 1;
+                if(checkConnection(s1) == 0){
+                    send(s1, m, strlen(m), 0);
+                    // go back to client loops
+                    return 1;
+                }
             }
             //printf("N != NULL\n");
             n = n->next;
@@ -369,17 +393,26 @@ int read_message(int s1, int s2) {
         char * w = "WAIT|0|";
         // player is ready - increment num_players
         num_players++;
-        send(s1, w, strlen(w), 0);
-        printf("Player Added MF\n");
+        if(checkConnection(s1) == 0){
+            send(s1, w, strlen(w), 0);
+            printf("Player Added MF\n");
+        }
 
         print_ll();
         // return successfully
         return 0;
     }
     else if(strcmp(code, "PLAY") == 0 && PlayCheck >= 2){
-        char * w = "You can not enter play after the game has already started!";
-        send(s1, w, strlen(w), 0);
+        char* m = "INVL|46|You can not click play after you started game.|";
+        send(s1, m, strlen(m),0);
         return 1;
+    }
+    else if(strcmp(code, "MOVD") == 0){
+        char* m = "INVL|17|Invalid Command.|";
+        if(checkConnection(s1) == 0){
+            send(s1, m, strlen(m), 0);
+            return 1;
+        }
     }
 
     if (strcmp(code, "MOVE") == 0) {
@@ -387,9 +420,11 @@ int read_message(int s1, int s2) {
         // move called before game started
         if (game_started == 0) {
             char* m = "INVL|23|Incorrect Move Request|";
-            send(s1, m, strlen(m), 0);
-            // go back to client loops
-            return 1;
+            if(checkConnection(s1) == 0){
+                send(s1, m, strlen(m), 0);
+                // go back to client loops
+                return 1;
+            }
         }
         
         // valid move request
@@ -455,8 +490,11 @@ int read_message(int s1, int s2) {
                     //printf("End Y\n");
 
                     if ((x < 0 || x > 2) || (y < 0 || y > 2)) {
-                        printf("INVALID MOVE\nNUMBERS OUT OF RANGE\n");
-                        return 1;
+                        char* m = "INVL|25|MOVING OUT OF SCOPE!|";
+                        if(checkConnection(s1) == 0){
+                            send(s1, m, strlen(m), 0);
+                            return 1;
+                        }
                     }
 
                     // should print out 1,
@@ -478,8 +516,11 @@ int read_message(int s1, int s2) {
                         printf("MOVE IS VALID\n");
                         board[x][y] = curr->player.role[0];
                     } else {
-                        send(s1, "INVL|17|MOVE IS INVALID|", strlen("INVL|17|MOVE IS INVALID|"));
-                        return 1;
+                        char * temp = "INVL|17|MOVE IS INVALID|";
+                        if(checkConnection(s1) == 0){
+                            send(s1, temp, strlen(temp),0);
+                            return 1;
+                        }
                     }
 
                     // print string_board
@@ -546,9 +587,17 @@ int read_message(int s1, int s2) {
         // // send message to player 2
         // send_size = send(s2, strdup(buffer), strlen(buffer), 0);
         // //printf("Send Size: %d\n", send_size);
-
-        send(s1, m, strlen(m), 0);
-        return 1;
+        if(checkConnection(s1) == 0){
+            send(s1, m, strlen(m), 0);
+            return 1;
+        }
+    }
+    else{
+        char* m = "INVL|17|Invalid command.|";
+        if(checkConnection(s1) == 0){
+            send(s1, m, strlen(m), 0);
+            return 1;
+        }
     }
 
 }
@@ -755,11 +804,11 @@ int main(int argc, char *argv[]) {
     //     exit(EXIT_FAILURE);
     // }
 
+    signal(SIGPIPE, SIG_IGN);
+
     int server_socket, client_socket1, client_socket2;
     struct sockaddr_in server_address, client_address1, client_address2;
     socklen_t client_address1_len, client_address2_len;
-
-
 
     // Create the server socket
     server_socket = socket(AF_INET, SOCK_STREAM, 0);
