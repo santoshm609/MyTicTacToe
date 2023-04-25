@@ -15,6 +15,7 @@
 typedef struct {
     int client_sock;
     char *name;
+    char role;
 } Player;
 
 typedef struct node {
@@ -26,6 +27,7 @@ Node* node_head = NULL;
 
 int num_players = 0;
 int game_started = 0;
+int begn_sent = 0;
 
 // tic tac toe game logic
     char board[3][3] = 
@@ -160,7 +162,7 @@ int read_message(int s1) {
         return 1;
     }
 
-    printf("CODE: %s", code);
+    printf("CODE: %s\n", code);
    
    // error checking done
     if (strcmp(code, "PLAY") == 0) {
@@ -222,8 +224,52 @@ int read_message(int s1) {
         return 0;
     }
 
-    if (strcmp(code, "MOVE")) {
+    if (strcmp(code, "MOVE") == 0) {
+        
+        // move called before game started
+        if (game_started == 0) {
+            char* m = "INVL|23|Incorrect Move Request|";
+            send(s1, m, strlen(m), 0);
+            // go back to client loops
+            return 1;
+        }
+        
+        // valid move request
         printf("WOOHOO WERE MOVING!\n");
+        // check that the move is correct
+        
+        // get player
+
+        Node * curr = node_head;
+        while (curr != NULL) {
+            if (curr->player.client_sock == s1) {
+                // found current player
+                printf("Found Current player %s\n", curr->player.name);
+                // check if role matches what was inputted.
+                
+                // role is correct
+                if ((strlen(fields[2]) == 1) && (fields[2][0] == curr->player.role)) {
+                    if (strlen(fields[3]) != 3) {
+                        printf("IMPROPERLY FORMATTED MOVE\n");
+                        return 1;
+                    }
+                    char* move = strdup(fields[3]);
+                    int x = atoi(move[0]);
+                    int y = atoi(move[2]);
+                    printf("MOVE: (%d,%d)\n", x, y);
+                    return 0;
+                }
+            }
+            curr = curr->next;
+        }
+        
+        
+        
+        
+        
+        
+        return 0;
+
     }
 
 
@@ -237,17 +283,18 @@ void *handle_client(void *arg) {
 
     while (1) {
         // game is set up
-        printf("NUMBER OF PLAYERS + %d\n\n", num_players);
-        if (num_players % 2 == 0) {
+        printf("NUMBER OF PLAYERS = %d\n\n", num_players);
+        if (num_players == 2 && game_started == 0) {
             // iterate through each node - get players sock_fd. compare to socket1 / socket 2
             Node * curr = node_head;
             while (curr != NULL) {
                 if (curr->player.client_sock == socket2) {
                     printf("Current Player is on Socket 1. Opponent Player is on Socket 2\n");
                     printf("NAME: %s\n", curr->player.name);
+                    curr->player.role = 'X';
                     char buffer[1000];
                     memset(buffer, 0, BUFFER_SIZE);
-                    sprintf(buffer, "BEGN|%d|X|Opponent is %s|", (15 + strlen(curr->player.name)), curr->player.name);
+                    sprintf(buffer, "BEGN|%d|%c|Opponent is %s|", (15 + strlen(curr->player.name)), curr->player.role, curr->player.name);
                     printf("Server Message to be sent: %s\n", buffer);
                     int send_size = send(socket1, strdup(buffer), strlen(buffer), 0);
                     printf("Send Size: %d\n", send_size);
@@ -255,9 +302,10 @@ void *handle_client(void *arg) {
                 else if (curr->player.client_sock == socket1) {
                     printf("Current Player is on Socket 2. Opponent Player is on Socket 1\n");
                     printf("NAME: %s\n", curr->player.name);
+                    curr->player.role = 'O';
                     char buffer[1000];
                     memset(buffer, 0, BUFFER_SIZE);
-                    sprintf(buffer, "BEGN|%d|O|Opponent is %s|", (15 + strlen(curr->player.name)), curr->player.name);
+                    sprintf(buffer, "BEGN|%d|%c|Opponent is %s|", (15 + strlen(curr->player.name)), curr->player.role, curr->player.name);
                     printf("Server Message to be sent: %s\n", buffer);
                     int send_size = send(socket2, strdup(buffer), strlen(buffer), 0);
                     printf("Send Size: %d\n", send_size);
@@ -265,6 +313,9 @@ void *handle_client(void *arg) {
 
                 curr = curr->next;
             }
+            // BEGN messages have been sent to both players.
+            game_started = 1;
+            printf("GAME STARTED!\ngame_started = %d\n", game_started);
         }
         if (player1_turn) {
             printf("PLAYER 1 TURN:\n\n");
@@ -283,62 +334,6 @@ void *handle_client(void *arg) {
             }
             // read unsuccessful - stay in client loop
         }
-        
-        
-        //read_size = read(socket1, buffer, BUFFER_SIZE);
-        // if (read_size <= 0) {
-        //     // Either an error occurred or the client closed the connection
-        //     break;
-        // }
-        // // Echo the message back to the client
-        // write(socket2, buffer, read_size);
-
-        // // Read from the second socket
-        // read_size = read(socket2, buffer, BUFFER_SIZE);
-        // if (read_size <= 0) {
-        //     // Either an error occurred or the client closed the connection
-        //     break;
-        // }
-        // // Echo the message back to the client
-        // write(socket1, buffer, read_size);
-/*
-        if(counter == 0){
-            // Wait for the second client to connect
-            while (1) {
-                if (read(socket1, buffer, BUFFER_SIZE) <= 0 || read(socket2, buffer, BUFFER_SIZE) <= 0) {
-                    // Either an error occurred or the client closed the connection
-                    break;
-                }
-                if (strcmp(buffer, "play") == 0) {
-                    break;
-                }
-            }
-            // Send a message to both clients indicating which player they are
-            int player1size = strlen("You are player 1!");
-            write(socket1, "You are player 1!", player1size);
-            write(socket2, "You are player 2!", player1size);
-            counter += 1;
-        }
-        else{
-            // Read from the first socket
-            read_size = read(socket1, buffer, BUFFER_SIZE);
-            if (read_size <= 0) {
-                // Either an error occurred or the client closed the connection
-                break;
-            }
-            // Echo the message back to the client
-            write(socket2, buffer, read_size);
-        
-            // Read from the second socket
-            read_size = read(socket2, buffer, BUFFER_SIZE);
-            if (read_size <= 0) {
-                // Either an error occurred or the client closed the connection
-                break;
-            }
-            // Echo the message back to the client
-            write(socket1, buffer, read_size);
-        }
-*/
     }
 
     // Close both sockets
