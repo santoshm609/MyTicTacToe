@@ -5,8 +5,20 @@ Name: Advait Borkar, netid: adb222
 Implementation Choice: Multi Threading Concurrent Games
 
 Test Plan:
-(a) Does ?
-- By entering a specific port
+(a) Can two players connect succesfully using ip address and the same port as the server?
+- By entering a specific domain and port number which matches the sever port, each player should be able to join the game and connect succesfully meeting with a "Enter Text" statement.
+
+(b) Can a player send a PLAY message and will they meet with a WAIT message from the server?
+- By inserting a message like "PLAY|10|Joe Smith|", the player succesfully selects play and meets with a "WAIT|0|" message from the server until the other player also says PLAY. After both say play, they both encounter with a BGN message from server.
+
+(c) Will a player have the oppurtunity to reenter a message if they encounter with a game level error or applicatiom level error?
+- When encountered with a a game level error or applicatiom level error, the player will see a "INVL" message with asks them to "Enter Text" again with a valid input.
+
+(d) Will turns alternate for each player?
+- Once the game begins, each player's turn will alternate for every valid input they provide.
+
+(e) 
+- When 
 
 ** Tested with multiple clients logging onto many ports all at once **
 Test 1: 

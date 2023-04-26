@@ -268,8 +268,22 @@ int read_message(int s1, int s2) {
 
 
     // check that message has at least two fields
-    if (num_fields < 2) {
-        char* m = "INVL|15|Invalid Format|";
+    if(strcmp(fields[0],"RSGN") == 0){
+        char* m = "OVER|W|23|OPPONENT HAS RESIGNED.|";
+        char* p = "OVER|L|19|YOU HAVE RESIGNED.|";
+        Node * curr = node_head;
+        char buffer[1000];
+        memset(buffer, 0, BUFFER_SIZE);
+
+        if(checkConnection(s1) == 0 && checkConnection(s2) == 0){
+            send(s1, p, strlen(p), 0);
+            send(s2, m, strlen(m), 0);
+            return 1;
+        }
+        
+    }
+    else if (num_fields < 2) {
+        char* m = "INVL|16|Invalid Format!|";
         if(checkConnection(s1) == 0){
             send(s1, m, strlen(m), 0);
             // go back to client loop
@@ -329,7 +343,7 @@ int read_message(int s1, int s2) {
         printf("true mf - last char was a vertical bar!\n");
     }
     else {
-        char* m = "INVL|21|Incorrect Formatting|";
+        char* m = "INVL|22|Incorrect Formatting!|";
         write(s1, m, strlen(m));
         printf("false mf\n");
         // go back to client loop
@@ -350,7 +364,7 @@ int read_message(int s1, int s2) {
        // printf("Set n == node_head\n");
         while (n != NULL) {
             if (strcmp(n->player.name, fields[2]) == 0) {
-                char* m = "INVL|22|Choose Different Name|";
+                char* m = "INVL|23|Choose Different Name!|";
                 if(checkConnection(s1) == 0){
                     send(s1, m, strlen(m), 0);
                     // go back to client loops
@@ -403,12 +417,12 @@ int read_message(int s1, int s2) {
         return 0;
     }
     else if(strcmp(code, "PLAY") == 0 && PlayCheck >= 2){
-        char* m = "INVL|46|You can not click play after you started game.|";
+        char* m = "INVL|46|You can not click play after you started game!|";
         send(s1, m, strlen(m),0);
         return 1;
     }
     else if(strcmp(code, "MOVD") == 0){
-        char* m = "INVL|17|Invalid Command.|";
+        char* m = "INVL|17|Invalid Command!|";
         if(checkConnection(s1) == 0){
             send(s1, m, strlen(m), 0);
             return 1;
@@ -419,7 +433,7 @@ int read_message(int s1, int s2) {
         
         // move called before game started
         if (game_started == 0) {
-            char* m = "INVL|23|Incorrect Move Request|";
+            char* m = "INVL|23|Incorrect Move Request.|";
             if(checkConnection(s1) == 0){
                 send(s1, m, strlen(m), 0);
                 // go back to client loops
@@ -490,7 +504,7 @@ int read_message(int s1, int s2) {
                     //printf("End Y\n");
 
                     if ((x < 0 || x > 2) || (y < 0 || y > 2)) {
-                        char* m = "INVL|25|MOVING OUT OF SCOPE!|";
+                        char* m = "INVL|25|MOVING OUT OF SCOPE.|";
                         if(checkConnection(s1) == 0){
                             send(s1, m, strlen(m), 0);
                             return 1;
@@ -516,7 +530,7 @@ int read_message(int s1, int s2) {
                         printf("MOVE IS VALID\n");
                         board[x][y] = curr->player.role[0];
                     } else {
-                        char * temp = "INVL|17|MOVE IS INVALID|";
+                        char * temp = "INVL|18|MOVE IS INVALID.|";
                         if(checkConnection(s1) == 0){
                             send(s1, temp, strlen(temp),0);
                             return 1;
@@ -564,36 +578,8 @@ int read_message(int s1, int s2) {
         //send(s1, temp, strlen(temp), 0);
         return 0;
     }
-    else if(strcmp(code,"RSGN") == 0){
-        char* m = "OVER";
-
-        Node * curr = node_head;
-        char buffer[1000];
-        memset(buffer, 0, BUFFER_SIZE);
-
-        // // store message for player 1
-        // sprintf(buffer, "MOVD|11|%c|%s|", curr->player.role[0], string_board);
-        
-        // // send message to player 1
-        // int send_size = send(s1, strdup(buffer), strlen(buffer), 0);
-        // //printf("Send Size: %d\n", send_size);
-
-        // // reset buffer
-        // memset(buffer, 0, BUFFER_SIZE);
-
-        // // store message for player 2
-        // sprintf(buffer, "MOVD|11|%c|%s|", curr->player.role[0], string_board);
-        
-        // // send message to player 2
-        // send_size = send(s2, strdup(buffer), strlen(buffer), 0);
-        // //printf("Send Size: %d\n", send_size);
-        if(checkConnection(s1) == 0){
-            send(s1, m, strlen(m), 0);
-            return 1;
-        }
-    }
     else{
-        char* m = "INVL|17|Invalid command.|";
+        char* m = "INVL|17|Invalid command!|";
         if(checkConnection(s1) == 0){
             send(s1, m, strlen(m), 0);
             return 1;
