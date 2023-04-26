@@ -41,16 +41,6 @@ int PlayCheck = 0;
 // string representation of board
 
 char string_board[10];
-// x = 1, y = 1 -> middle square
-
-// void make_string_board() {
-    
-//     for (int i = 0; i < 3; i ++) {
-//         for (int j = 0 ; j < 3; j ++) {
-//             buf[(i * 3) + j] = board[i][j];
-//         }
-//     }
-// }
 
 
 
@@ -470,8 +460,6 @@ int read_message(int s1, int s2) {
 
                     char* move = strdup(fields[3]);
                     printf("String Rep of MOVE: %s\n", move);
-
-
 
                     // int array for x, y
                     int coordinates[2];

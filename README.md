@@ -17,74 +17,83 @@ Test Plan:
 (d) Will turns alternate for each player?
 - Once the game begins, each player's turn will alternate for every valid input they provide.
 
-(e) 
-- When 
+(e) Will the game end if a player resigns?
+- When either player inputs "RSGN", it ends the game for both players and sends an OVER message to both indicating if they won or not.
+
+(f) Will a player have the oppurtunity to draw mid game?
+- During any of the player's turns, if a player sends "DRAW|2|S|", it will ask the other player respond with "DRAW|2|A|" to accept or "DRAW|2|R" to reject
+
+(g) What happens during a session level error?
+- During any session level error, it will allow for the server to write to socket indicating the the connection was lost.
+
+(h) What happens when a player wins the game through diagonal, horizontal, or vertical?
+- Both players will encounter an OVER message indicating if they won, lost, or draw because the grid was full.
+
+(i) Can more than one game occur at once?
+- For every two players in the game, it will link them and start a respective game between each.
 
 ** Tested with multiple clients logging onto many ports all at once **
 Test 1: 
-1. Command line reads and tokenizes properly through our_split_line()
-2. When successful, ourRead() and our_split_line() read from the command line and store each token into the token array. - PASSED
+1. Two players connect succesfully using ip address and the port as the server
+2. When successful, running ./ttt 127.0.0.1 3301  and ./c2 127.0.0.3 3301 and ./ttts 3301, it sucessfully connects both players into one game - PASSED
 
 Test 2: 
-1. Exit call ends the shell - PASSED
+1. When player 1 sends PLAY|10|Joe Smith|, they encounter with WAIT|0| until the next player inserts PLAY - PASSED
 
 Test 3: 
-1. With an input of "cd testDir", it changes directory and pwd returns the current new directory - PASSED
+1. When player 1 sends PLAY|10|Joe Smith| and player 2 sends PLAY|4|Max|, player 1 encounters with BEGN|18|X|Opponent is Max| and player 2 enxounters BEGN|24|O|Opponent is Joe Smith| - PASSED
 
 Test 4: 
-1. pipe_implement() in execute() method runs properly
-2. WHen successful, takes in arguments and flows in from one file to another - PASSED
+1. When player 1 sends PLAY|10|Joe Smith| and player 2 sends PLAY|4|Max|, if player 1 decides to say PLAY|10|Joe Smith| again, server will notify INVL|46|You can not click play after you started game!| message - PASSED
 
 Test 5:
-1. wildcard() call in execute() method with *.c we want to switch to - PASSED
+1. When player 1 or 2 sends an invalid message such as MOVD|11|X|....X....|, server will respond with INVL|22|Incorrect Formatting!| since only server can send MOVD message - PASSED
 
 Test 6: 
-1. bare_names() checks if the command is a file in respective directories and returns proper error message if not - PASSED
+1.  When player 1 or 2 sends RSGN, server will end the game and respond with OVER|L|19|YOU HAVE RESIGNED.| and OVER|W|23|OPPONENT HAS RESIGNED.| to respective players - PASSED
 
 Test 7:
-For this test, regarding our first extention, directory wildcards, when I input *.c, it returns all the .c files in our current working directory. - PASSED
+1. When four distinct players log on to the same port as the server, the server splits them into twi games, all of their names have to be the same or else the server states INVL|23|Choose Different Name!| - PASSED
 
 Test 8:
-For this test, regarding our second extention, when I call cd in the terminal it switches us and returns us to the home directory. When I enter a executable file like foo<~>, it redirects it to the home directory. - PASSED
+1. When player 1 wins the game with 3 X's in a row horizontally, vertically, or diagonally, sevrer sends OVER|22|W|You Got 3 In A Row!| for player 1. - PASSED
 
 Test 9:
-Repeat for batch mode - PASSED
+1. When player 1 wins the game with 3 X's in a row horizontally, vertically, or diagonally, sevrer sends OVER|10|L|You Lost.| for player 2. - PASSED
 
 
 Design Description: 
 
-** checkfile int checks whether or not the previous command was sucessful or not and therefore, prints !mysh< or mysh< accordingly
+int checkConnection(): 
+- This function checks if the socket connection is still running and if not, if "write()" returns "-1", the function checks the value of the "errno"  variable to determine the type of error that occurred. If "errno" equals "EPIPE", this means that the socket has disconnected or disruppted, so the function prints "Session-level Error." to stdout 
 
-our_read_line(): 
-- This function reads a line of input from the user, through the terminal, until it meets a newline or end-of-file character. IDynamically, it allocates memory for a buffer to store the input, and reallocates the buffer if necessary to accommodate longer input. It essentially implements line by line reading through storing in buffers to be split and tokenized later.
+int board_full()(): 
+- This function essentially checks if the tic tac toe board is full by using nested for loops to iterate over the board. If counter becomes 0, it means board is full and returns 0 to indicate it.
 
-our_split_line(): 
-- This function essentially splits the line of input character by character and tokenizes it. It initializes a token array and reads in each line until it meets with a space or any of the chars, "<,>,|". In the case of "<,>,|" it creates a duplicate of the character string and stores it into the token array. 
+int checkRow():
+- This function essentially checks if there are three consectutive O's or X's in any row of the tic tac toe board. It uses to for loops by comparing the element in each spot with the first column first row mark. If there are 3 consecutive, it returns an int indicating if anyone one in terms of any row.
 
-our_execute():
-- This function essentially ties in all of our possible commands from the token array. It first addresses what the first token was and redirects into the following methods below based off what it matches. Also prints necessary error statements when met.
+checkCol():
+- Like checkRow(), this function  checks if there are three consectutive O's or X's in any column of the tic tac toe board. It uses to for loops by comparing the element in each spot with the first row first column mark. If there are 3 consecutive, it returns an int indicating if anyone one in terms of any column.
 
-bare_names():
-- This function checks whethere the first token, an executable file, is within the directories given. Iterates through them through the array and if found but no executable it immediately exits out. 
+checkDiagonals():
+- In this function, it checks individually at each diagonal location, returning an int for the match or not.
 
-wildcard():
-- In this method, we search for all of teh occurence of *. We then replace the * with all occurances of postring or prestring. The string before the * and the after are matched up withe the possible files in the working directory. 
+check_win():
+- This method, based off, the ints returned from the previous methods, checks if any of the players won and if so, handles the win case accordingly.
 
-file_redirection():
-- This method iterates through the args array and searches for the first occurance of '<' or '>'. After it finds it it also finds the immediate token after that storing it into a char path variable. After running the first token and opening it up, it runs the file and read writes into it.
+make_string_board():
+- This initializes the tictactoe board.
 
-pipe_implement():
-- This takes in a param of args and then connects two processes or subprocesses through the '|'. After locating the '|', we obtain the file descriptors of each file, and begin a process invoolving pipes. 
+check_move():
+- This function checks if at the given x,y position inserted by the player, if the spot is free or not and returns 1 if valid.
 
-directory_wildcards():
-- This function searches through the command line and obtains the tokene with the * and string part which is trailing the *. Then, it searches the current working directory and returns all matching files such as all c files as per our test.
+read_message():
+- This is a function where it reads and parses over the network connection between two players. It takes in two file descriptors, each representing of each socket for each client, and performs appropriate validation on it after parsing. Establishes RSGN check in here and checks if the bytes are equal in length so that they are valid. Also implements PlayCheck so that no player inserts PLAY more than once.
 
-home_directory():
-- This is a function where it takes an array of arguments (args) and replaces any string that starts with a tilde character (~) with the corresponding home directory path. In addition, when cd is entered as a command, it automatically switch the current working directory to home directory through getenv("HOME") and chdir()
+handle_client():
+- This is the main function where it handles the client-server communication for each thread. It makes appropriate function calls where it also initializes each player in the linked list as a role after connecting them. 
 
-command_itterate():
-- This is a iterate function which keeps the bash running till it reaches exit status 1. As long as it is running it passes the arguments into read, split, and execute to performa all of the appropriate functions.
+** We were able to run all test cases in the command line terminal and all test cases passed accordingly. **
 
-** We were able to run all 8 commands in the command line terminal and all test cases passed as we wanted it to. We included all of the input files and extra directory with this project to prove our test cases to be true.
-
-** We were able to prove all of our design properties through our rigourous testing methods and error statements.
+** We were able to prove all of our design properties through our rigourous testing methods and error statements. **
