@@ -56,7 +56,7 @@ char string_board[10];
 
 int checkConnection(int fd){
     // try to write data to the socket
-    int n = write(fd, "Check", strlen("Check"));
+    int n = send(fd, "Check", strlen("Check"), 0);
     if (n == -1 && errno == EPIPE) {
         // handle EPIPE error
         printf("Session-level Error.");
@@ -92,11 +92,11 @@ return
 2 - O
 */
 int checkRow() {
-  printf("WE ARE CHECKING ROW\n");
+  //printf("WE ARE CHECKING ROW\n");
   char check;
   for (int i = 0; i < 3; i++) {
     check = board[i][0];
-    printf("CHECKING %c\n", check);
+    //printf("CHECKING %c\n", check);
     if (check == '.') continue;
     for (int j = 1; j < 3; j++) {
       if (board[i][j] != check) break;
@@ -111,7 +111,7 @@ int checkRow() {
     printf("\nO Wins\n");
     return 2;
   } 
-  printf("NO 3 IN A ROW\n");
+  //printf("NO 3 IN A ROW\n");
   return 0;
 }
 
@@ -122,11 +122,11 @@ return
 2 - O
 */
 int checkCol() {
-  printf("WE ARE CHECKING COL\n");
+  //printf("WE ARE CHECKING COL\n");
   char check;
   for (int j = 0; j < 3; j++) {
     check = board[0][j];
-    printf("CHECKING %c\n", check);
+    //printf("CHECKING %c\n", check);
     if (check == '.') continue;
     for (int i = 1; i < 3; i++) {
       if (board[i][j] != check) break;
@@ -578,6 +578,53 @@ int read_message(int s1, int s2) {
         //send(s1, temp, strlen(temp), 0);
         return 0;
     }
+    else if (strcmp(fields[0],"DRAW") == 0) {
+        printf("MESSAGE: %s\n", fields[2]);
+        printf("WOOHOO WERE DRAWING\n");
+        
+        // Draw is sent; S
+        if (strcmp(fields[2], "S") == 0) {
+            // send draw message to client 2
+            send(s2, "DRAW|2|S|", strlen("DRAW|2|S|"), 0);
+
+            // read message back
+            char draw_buf[100];
+            memset(draw_buf, 0, sizeof(draw_buf));
+            recv(s2, draw_buf, sizeof(draw_buf), 0);
+            // parse message
+            char* draws[7]; // array to hold fields
+            int d = 0;
+            char* draw_tok = strtok(draw_buf, "|"); // split by vertical bar
+            while (draw_tok != NULL) {
+            
+                draws[d] = draw_tok;
+                d++;
+                printf("field #%d, token: %s, token length: %d\n", d, draw_tok, strlen(draw_tok));
+                draw_tok = strtok(NULL, "|");
+            }
+            // if draw was accepted
+            if (strcmp(draws[2], "A") == 0) {
+                send(s1, "OVER|7|D|DRAW|", strlen("OVER|7|D|DRAW|"), 0);
+                send(s2, "OVER|7|D|DRAW|", strlen("OVER|7|D|DRAW|"), 0);
+                pthread_exit(NULL);
+            }
+            // draw was rejected
+            else if (strcmp(draws[2], "R") == 0) {
+                send(s1, "DRAW|2|R", strlen("DRAW|2|R"), 0);
+                // goes back to players move
+                return 1;
+            }
+            else {
+                char* m = "INVL|22|Incorrect Formatting!|";
+                write(s1, m, strlen(m));
+                printf("false mf\n");
+                // go back to client loop
+                return 1;
+            }
+            
+        }        
+        return 0;
+    }
     else{
         char* m = "INVL|17|Invalid command!|";
         if(checkConnection(s1) == 0){
@@ -585,6 +632,7 @@ int read_message(int s1, int s2) {
             return 1;
         }
     }
+    
 
 }
 
@@ -680,6 +728,7 @@ void *handle_client(void *arg) {
             // send message to player 2
             send_size = send(socket2, "OVER|27|L|Opponent Got 3 In A Row!|", strlen("OVER|27|L|Opponent Got 3 In A Row!|"), 0);
             printf("Send Size: %d\n", send_size);
+            pthread_exit(NULL);
 
         }
         else if (check_win() == 2) {
@@ -692,6 +741,7 @@ void *handle_client(void *arg) {
             // send message to player 1
             send_size = send(socket1, "OVER|27|L|Opponent Got 3 In A Row!|", strlen("OVER|27|L|Opponent Got 3 In A Row!|"), 0);
             printf("Send Size: %d\n", send_size);
+            pthread_exit(NULL);
         }
         else if (check_win() == 0) {
             if (board_full() == 0) {
@@ -704,6 +754,7 @@ void *handle_client(void *arg) {
                 // send message to player 2
                 send_size = send(socket2, "OVER|16|D|Board Is Full|", strlen("OVER|16|D|Board Is Full|"), 0);
                 printf("Send Size: %d\n", send_size);
+                pthread_exit(NULL);
             }
         }
         
@@ -719,77 +770,7 @@ void *handle_client(void *arg) {
 //     int socket2 = *((int *)arg+1);
 // }
 int main(int argc, char *argv[]) {
-    // int socket1, socket2, client_socket1, client_socket2;
-    // struct sockaddr_in server1_address, server2_address, client_address1, client_address2;
-    // socklen_t client_address1_len, client_address2_len;
-    // pthread_t thread_id;
-    // int *arg;
-
-    // // Create the first socket
-    // socket1 = socket(AF_INET, SOCK_STREAM, 0);
-    // if (socket1 == -1) {
-    //     perror("Failed to create socket1");
-    //     exit(EXIT_FAILURE);
-    // }
-
-    // // Set up the first server address
-    // memset(&server1_address, 0, sizeof(server1_address));
-    // server1_address.sin_family = AF_INET;
-    // server1_address.sin_addr.s_addr = INADDR_ANY;
-    // server1_address.sin_port = htons(PORT1);
-
-    // // Bind the first socket to the server address
-    // if (bind(socket1, (struct sockaddr *) &server1_address, sizeof(server1_address)) == -1) {
-    //     perror("Failed to bind socket1");
-    //     exit(EXIT_FAILURE);
-    // }
-
-    // // Listen for incoming connections on the first socket
-    // if (listen(socket1, 1) == -1) {
-    //     perror("Failed to listen on socket1");
-    //     exit(EXIT_FAILURE);
-    // }
-
-    // // Create the second socket
-    // socket2 = socket(AF_INET, SOCK_STREAM, 0);
-    // if (socket2 == -1) {
-    //     perror("Failed to create socket2");
-    //     exit(EXIT_FAILURE);
-    // }
-
-    // // Set up the second server address
-    // memset(&server2_address, 0, sizeof(server2_address));
-    // server2_address.sin_family = AF_INET;
-    // server2_address.sin_addr.s_addr = INADDR_ANY;
-    // server2_address.sin_port = htons(PORT2);
-
-    // // Bind the second socket to the server address
-    // if (bind(socket2, (struct sockaddr *) &server2_address, sizeof(server2_address)) == -1) {
-    //     perror("Failed to bind socket2");
-    //     exit(EXIT_FAILURE);
-    // }
-
-    // // Listen for incoming connections on the second socket
-    // if (listen(socket2, 1) == -1) {
-    //     perror("Failed to listen on socket2");
-    //     exit(EXIT_FAILURE);
-    // }
-
-    // // Accept incoming connections on both sockets
-    // client_address1_len = sizeof(client_address1);
-    // client_address2_len = sizeof(client_address2);
-    // client_socket1 = accept(socket1, (struct sockaddr *) &client_address1, &client_address1_len);
-    // if (client_socket1 == -1) {
-    //     perror("Failed to accept incoming connection on socket1");
-    //     exit(EXIT_FAILURE);
-    // }
-
-    // client_socket2 = accept(socket2, (struct sockaddr *) &client_address2, &client_address2_len);
-    // if (client_socket2 == -1) {
-    //     perror("Failed to accept incoming connection on socket2");
-    //     exit(EXIT_FAILURE);
-    // }
-
+    
     signal(SIGPIPE, SIG_IGN);
 
     int server_socket, client_socket1, client_socket2;

@@ -8,7 +8,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
-#define PORT 3301 
+#define PORT 3302 
 #define BUFFER_SIZE 1024
 
 char * my_role;
@@ -68,6 +68,7 @@ int main(int argc, char *argv[]) {
             break;
         } else {
             printf("Read Size: %d\n", read_size);
+            if (strcmp(buffer, "Check") == 0) continue;
             printf("%s\n", buffer);
             char cpy[strlen(buffer)];
             memset(cpy, 0, sizeof(cpy));
@@ -104,7 +105,7 @@ int main(int argc, char *argv[]) {
                 }
                 
             }
-            if (strcmp(fields[0], "MOVD") == 0) {
+            else if (strcmp(fields[0], "MOVD") == 0) {
                 // if the move that was played is not equal to client's role, than we can make a move. Otherwise nothing.
                 if (strcmp(my_role, fields[2]) != 0) {
                     // Read input from the user
@@ -120,7 +121,7 @@ int main(int argc, char *argv[]) {
                     }
                 }
             }
-            if (strcmp(fields[0], "INVL") == 0) {
+            else if (strcmp(fields[0], "INVL") == 0) {
                 // if the move that was played is not equal to client's role, than we can make a move. Otherwise nothing.
                 
                 // Read input from the user
@@ -134,6 +135,19 @@ int main(int argc, char *argv[]) {
                     perror("Failed to send message to server");
                     exit(EXIT_FAILURE);
                 }
+            }
+            else if (strcmp(fields[0], "DRAW") == 0) {
+                // Read input from the user
+                printf("Enter text: ");
+                memset(message, 0, sizeof(message));
+                fgets(message, BUFFER_SIZE, stdin);
+                message[strcspn(message, "\n")] = '\0'; // Remove newline character
+
+                // Send the message to the server
+                if (send(socketfd, message, strlen(message), 0) == -1) {
+                    perror("Failed to send message to server");
+                    exit(EXIT_FAILURE);
+                }   
             }
         }
     }
